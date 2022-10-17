@@ -10,6 +10,7 @@ import daemon
 
 def start() -> None:
 
+    # TODO: specify a PID file. So we know how to reference the process to shut it down later
     with daemon.DaemonContext():
         _main()
 
