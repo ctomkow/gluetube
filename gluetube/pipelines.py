@@ -43,35 +43,95 @@ class Pipeline(ABC):
 
     @abstractmethod
     def run(self) -> None:
-        """The entry point of the pipeline. This will chain together your _extract, _transform, _load methods"""
+        """The entry point of the pipeline. This will chain together your pipeline stages"""
         pass
 
-    def extract(method) -> Any:
-        """Define the first stage of the pipeline. Extracting data from the source system"""
+    def stage1(method) -> Any:
+        """Define the first stage of the pipeline."""
 
         def wrapper(*args, **kwargs):
             # TODO: write stage to db as a separate call
-            args[0].stage = 'extracting'
+            args[0].stage = '1'
             return method(*args, **kwargs)
 
         return wrapper
 
-    def transform(method) -> Any:
-        """Define the middle stage of the pipeline. Transform data for the target system"""
+    def stage2(method) -> Any:
+        """Define the second stage of the pipeline"""
 
         def wrapper(*args, **kwargs):
             # TODO: write stage to db as a separate call
-            args[0].stage = 'transforming'
+            args[0].stage = '2'
             return method(*args, **kwargs)
 
         return wrapper
 
-    def load(method) -> Any:
-        """Define the final stage of the pipeline. Load the transformed data into the target system"""
+    def stage3(method) -> Any:
+        """Define the third stage of the pipeline"""
 
         def wrapper(*args, **kwargs):
             # TODO: write stage to db as a separate call
-            args[0].stage = 'loading'
+            args[0].stage = '3'
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    def stage4(method) -> Any:
+        """Define the fourth stage of the pipeline"""
+
+        def wrapper(*args, **kwargs):
+            # TODO: write stage to db as a separate call
+            args[0].stage = '4'
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    def stage5(method) -> Any:
+        """Define the fifth stage of the pipeline"""
+
+        def wrapper(*args, **kwargs):
+            # TODO: write stage to db as a separate call
+            args[0].stage = '5'
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    def stage6(method) -> Any:
+        """Define the sixth stage of the pipeline"""
+
+        def wrapper(*args, **kwargs):
+            # TODO: write stage to db as a separate call
+            args[0].stage = '6'
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    def stage7(method) -> Any:
+        """Define the seventh stage of the pipeline"""
+
+        def wrapper(*args, **kwargs):
+            # TODO: write stage to db as a separate call
+            args[0].stage = '7'
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    def stage8(method) -> Any:
+        """Define the eighth stage of the pipeline"""
+
+        def wrapper(*args, **kwargs):
+            # TODO: write stage to db as a separate call
+            args[0].stage = '8'
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    def stage9(method) -> Any:
+        """Define the ninth stage of the pipeline"""
+
+        def wrapper(*args, **kwargs):
+            # TODO: write stage to db as a separate call
+            args[0].stage = '9'
             return method(*args, **kwargs)
 
         return wrapper
