@@ -5,6 +5,7 @@
 from db import Pipeline, Store
 import config
 import util
+import gluetubed
 
 # python imports
 import logging
@@ -60,6 +61,11 @@ def run_pipeline(name: str, base_dir: str) -> None:
 
     # TODO: set pipeline status='completed', an sqlite3 call
     logging.info(f"Pipeline: {name} completed.")
+
+
+def start_daemon() -> None:
+
+    gluetubed.start()
 
 # helper functions
 

@@ -29,6 +29,10 @@ setup(
         author=AUTHOR,
         author_email=EMAIL,
         license='MIT',
+        install_requires=[
+            'python-daemon>=2.3.1,<3.0.0'
+        ],
+
         entry_points={
             'console_scripts': [
                 'gluetube=gluetube.gluetube:Gluetube',
