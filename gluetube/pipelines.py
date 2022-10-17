@@ -2,7 +2,7 @@
 # 2022-09-08
 
 # local imports
-from db import Database
+from db import Store
 
 # python imports
 from abc import ABC, abstractmethod
@@ -26,7 +26,7 @@ class Pipeline(ABC):
 
         # TODO: set pipeline stage='initializing', an sqlite3 call
 
-        db_store = Database('store.db')
+        db_store = Store('store.db')
 
         for group in variable_groups:
             db_store.create_table(group)

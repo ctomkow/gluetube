@@ -2,7 +2,7 @@
 # 2022-09-09
 
 # local imports
-import metadata
+from db import Pipeline, Store
 
 # python imports
 import logging
@@ -13,23 +13,27 @@ import os
 from venv import EnvBuilder
 from pathlib import Path
 
-# 3rd party imports
-from jsonparse import Parser
+
+def init_gluetube() -> None:
+
+    db = Pipeline('gluetube.db')
+    db.create_schema()
+    db = Store('store.db')
 
 
 def ls_pipelines() -> list:
 
-    return Parser().find_key(metadata.definitions, 'pipelines')[0].keys()
+    db = Pipeline('gluetube.db')
+    return db.all_pipelines()
 
 
 def run_pipeline(name: str, conf_dir: list, pipeline_locations: list) -> None:
 
     # TODO: set pipeline status='running', an sqlite3 call
 
-    # TODO: move this...something something
-    # get metadata of pipeline
-    pipeline_file = Parser().find_key_chain(metadata.definitions, ['pipelines', name, 'pipeline_file_name'])[0]
-    pipeline_dir = Parser().find_key_chain(metadata.definitions, ['pipelines', name, 'pipeline_directory'])[0]
+    db = Pipeline('gluetube.db')
+    pipeline_file = db.pipeline_py_name(name)[0]
+    pipeline_dir = db.pipeline_dir_name(name)[0]
 
     abs_path_to_pipeline_dir = _append_conf_name_to_dir(pipeline_dir, pipeline_locations)[0]
     pipeline_abs_path = _append_conf_name_to_dir(f"{pipeline_dir}/{pipeline_file}", pipeline_locations)[0]
@@ -40,7 +44,8 @@ def run_pipeline(name: str, conf_dir: list, pipeline_locations: list) -> None:
 
     # attempt to install pipeline requirements every time it is run
     # this is required because the pipeline could have changed along with it's requirements.txt
-    _install_pipeline_requirements(abs_path_to_pipeline_dir)
+    if _requirements_exists(f"{abs_path_to_pipeline_dir}/requirements.txt"):
+        _install_pipeline_requirements(abs_path_to_pipeline_dir)
 
     try:
         subprocess.check_output([f"{abs_path_to_pipeline_dir}/.venv/bin/python", pipeline_abs_path])
@@ -63,6 +68,11 @@ def _venv_exists(path: str) -> bool:
 
     path = Path(path)
     return path.is_dir()
+
+
+def _requirements_exists(path: str) -> bool:
+    path = Path(path)
+    return path.is_file()
 
 
 def _create_venv(dir: str) -> None:

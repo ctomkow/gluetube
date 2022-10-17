@@ -21,9 +21,11 @@ class Gluetube:
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
 
-        if args.ls:
+        if args.init:
+            command.init_gluetube()
+        elif args.ls:
             for name in command.ls_pipelines():
-                print(name)
+                print(name[0])
         elif args.run:
             try:
                 command.run_pipeline(args.run, self._conf_dir(), self._pipeline_dir())
@@ -42,9 +44,10 @@ class Gluetube:
         # all flags here
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
-        group.add_argument('-l', '--ls', action='store_true', help="List all available pipelines.")
+        group.add_argument('-l', '--ls', action='store_true', help='List all available pipelines')
         group.add_argument('-r', '--run', action='store', metavar='NAME',
-                           help="Provide the pipeline name to run. e.g. pipeline --run my_pipeline")
+                           help='Provide the pipeline name to run. e.g. pipeline --run my_pipeline')
+        group.add_argument('-i', '--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
         return parser.parse_args()
 
 # helper functions
