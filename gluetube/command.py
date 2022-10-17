@@ -19,6 +19,7 @@ def init_gluetube() -> None:
     db = Pipeline('gluetube.db')
     db.create_schema()
     db = Store('store.db')
+    print('setup complete.')
 
 
 def ls_pipelines() -> list:
@@ -27,28 +28,27 @@ def ls_pipelines() -> list:
     return db.all_pipelines()
 
 
-def run_pipeline(name: str, conf_dir: list, pipeline_locations: list) -> None:
+def run_pipeline(name: str, base_dir: str) -> None:
 
     # TODO: set pipeline status='running', an sqlite3 call
 
     db = Pipeline('gluetube.db')
     pipeline_file = db.pipeline_py_name(name)[0]
     pipeline_dir = db.pipeline_dir_name(name)[0]
+    dir_abs_path = f"{base_dir}/{pipeline_dir}"
+    py_abs_path = f"{dir_abs_path}/{pipeline_file}"
 
-    abs_path_to_pipeline_dir = _append_conf_name_to_dir(pipeline_dir, pipeline_locations)[0]
-    pipeline_abs_path = _append_conf_name_to_dir(f"{pipeline_dir}/{pipeline_file}", pipeline_locations)[0]
-
-    if not _venv_exists(f"{abs_path_to_pipeline_dir}/.venv"):
-        _create_venv(abs_path_to_pipeline_dir)
-        _symlink_gluetube_to_venv(f"{abs_path_to_pipeline_dir}/.venv")
+    if not _venv_exists(f"{dir_abs_path}/.venv"):
+        _create_venv(dir_abs_path)
+        _symlink_gluetube_to_venv(f"{dir_abs_path}/.venv")
 
     # attempt to install pipeline requirements every time it is run
     # this is required because the pipeline could have changed along with it's requirements.txt
-    if _requirements_exists(f"{abs_path_to_pipeline_dir}/requirements.txt"):
-        _install_pipeline_requirements(abs_path_to_pipeline_dir)
+    if _requirements_exists(f"{dir_abs_path}/requirements.txt"):
+        _install_pipeline_requirements(dir_abs_path)
 
     try:
-        subprocess.check_output([f"{abs_path_to_pipeline_dir}/.venv/bin/python", pipeline_abs_path])
+        subprocess.check_output([f"{dir_abs_path}/.venv/bin/python", py_abs_path])
     except CalledProcessError:
         # TODO: set pipeline status='crashed', an sqlite3 call
         raise
@@ -57,11 +57,6 @@ def run_pipeline(name: str, conf_dir: list, pipeline_locations: list) -> None:
     logging.info(f"Pipeline: {name} completed.")
 
 # helper functions
-
-
-def _append_conf_name_to_dir(conf_name: str, conf_dir: list) -> list:
-
-    return [s + conf_name for s in conf_dir]
 
 
 def _venv_exists(path: str) -> bool:
@@ -93,9 +88,9 @@ def _symlink_gluetube_to_venv(venv_dir: str) -> None:
     os.symlink(src, dst)
 
 
-def _install_pipeline_requirements(abs_path_to_pipeline_dir: str) -> None:
+def _install_pipeline_requirements(dir: str) -> None:
 
     try:
-        subprocess.check_output([f"{abs_path_to_pipeline_dir}/.venv/bin/pip", 'install', '-r', f"{abs_path_to_pipeline_dir}/requirements.txt"])
+        subprocess.check_output([f"{dir}/.venv/bin/pip", 'install', '-r', f"{dir}/requirements.txt"])
     except CalledProcessError:
         raise

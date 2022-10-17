@@ -25,6 +25,8 @@ class Parser(ABC):
         if not self.filename:
             raise exceptions.ConfigFileNotFoundError(conf_locations)
 
+        self.parse()
+
     @abstractmethod
     def parse(self):
         """Implement this method to parse the configuration file specifics.
@@ -32,8 +34,12 @@ class Parser(ABC):
         pass
 
 
-class Systems(Parser):
+class Gluetube(Parser):
 
     def parse(self) -> None:
-        # TODO: netglue system config file
-        pass
+
+        try:
+            self.pipeline_dir = self.config['gluetube']['PIPELINE_DIR']
+            self.database_dir = self.config['gluetube']['DATABASE_DIR']
+        except KeyError as e:
+            raise exceptions.ConfigFileParseError(f"Failed to lookup key, {e}", self.filename) from e

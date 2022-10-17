@@ -5,6 +5,8 @@
 
 # local imports
 import command
+import config
+import util
 
 # python imports
 import logging
@@ -21,6 +23,7 @@ class Gluetube:
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
 
+        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
         if args.init:
             command.init_gluetube()
         elif args.ls:
@@ -28,7 +31,7 @@ class Gluetube:
                 print(name[0])
         elif args.run:
             try:
-                command.run_pipeline(args.run, self._conf_dir(), self._pipeline_dir())
+                command.run_pipeline(args.run, gt_cfg.pipeline_dir)
             except Exception as e:
                 logging.exception(e)
                 raise SystemExit(1)
@@ -62,26 +65,6 @@ class Gluetube:
 
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s",
                             datefmt="%Y.%m.%d %H:%M:%S")
-
-    # all the possible directories for the cfg files,
-    #   depending on how things are packaged and deployed
-    #   starts locally, then branches out eventually system-wide
-    def _conf_dir(self) -> list:
-
-        return [
-            './',
-            'cfg/',
-            '~/.gluetube/cfg/',
-            '/usr/local/etc/gluetube/',
-            '/etc/opt/gluetube/',
-            '/etc/gluetube/'
-        ]
-
-    def _pipeline_dir(self) -> list:
-        # TODO: fix this, as it needs an absolute path for the subprocess trigger to work
-        return [
-            '/home/gluetube/.gluetube/pipelines/'
-        ]
 
 
 if __name__ == '__main__':

@@ -1,6 +1,10 @@
 # Craig Tomkow
 # 2022-10-14
 
+# local imports
+import config
+import util
+
 # python imports
 import sqlite3
 
@@ -9,8 +13,8 @@ class Database:
 
     def __init__(self, db_name: str) -> None:
 
-        # TODO: change static path to dynamic location
-        self.con = sqlite3.connect(f"/home/gluetube/.gluetube/db/{db_name}")
+        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+        self.con = sqlite3.connect(f"{gt_cfg.database_dir}/{db_name}")
         self._cur = self.con.cursor()
 
 
