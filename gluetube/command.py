@@ -3,6 +3,8 @@
 
 # local imports
 from db import Pipeline, Store
+import config
+import util
 
 # python imports
 import logging
@@ -16,6 +18,9 @@ from pathlib import Path
 
 def init_gluetube() -> None:
 
+    gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+    Path(gt_cfg.pipeline_dir).mkdir(exist_ok=True)
+    Path(gt_cfg.database_dir).mkdir(exist_ok=True)
     db = Pipeline('gluetube.db')
     db.create_schema()
     db = Store('store.db')
