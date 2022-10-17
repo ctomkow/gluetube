@@ -1,0 +1,2 @@
+requests>=2.6.0
+jsonparse>=0.9.1

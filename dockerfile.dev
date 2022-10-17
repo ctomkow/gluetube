@@ -1,0 +1,20 @@
+FROM python:3.10.7-bullseye
+
+RUN useradd --uid 1000 --create-home --shell /bin/bash gluetube
+
+USER gluetube
+ENV PATH "$PATH:/home/gluetube/.local/bin"
+
+WORKDIR /home/gluetube
+
+COPY requirements.txt ./
+COPY requirements-dev.txt ./
+
+RUN pip install -r requirements.txt --user
+RUN pip install -r requirements-dev.txt --user
+
+COPY ./gluetube /home/gluetube/.local/lib/python3.10/site-packages/gluetube
+
+RUN mkdir -p .gluetube/cfg && mkdir -p .gluetube/pipelines && mkdir -p .gluetube/db
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
