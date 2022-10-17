@@ -29,9 +29,6 @@ setup(
         author=AUTHOR,
         author_email=EMAIL,
         license='MIT',
-        install_requires=[
-            'jsonparse>=0.9.1'
-        ],
         entry_points={
             'console_scripts': [
                 'gluetube=gluetube.gluetube:Gluetube',
