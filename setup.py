@@ -30,7 +30,6 @@ setup(
         author_email=EMAIL,
         license='MIT',
         install_requires=[
-            'requests>=2.6.0',
             'jsonparse>=0.9.1'
         ],
         entry_points={
