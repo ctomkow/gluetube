@@ -35,6 +35,8 @@ class Gluetube:
             except Exception as e:
                 logging.exception(e)
                 raise SystemExit(1)
+        elif args.foreground:
+            command.start_daemon_fg()
         elif args.start:
             command.start_daemon()
 
@@ -54,7 +56,8 @@ class Gluetube:
                            help='Provide the pipeline name to run. e.g. pipeline --run my_pipeline')
         group.add_argument('-i', '--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
         start_parser = parser.add_subparsers(dest='start')
-        start_parser.add_parser('start', description='start gluetube as a daemon process')
+        start = start_parser.add_parser('start', description='start gluetube as a daemon process')
+        start.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
         return parser.parse_args()
 
 # helper functions

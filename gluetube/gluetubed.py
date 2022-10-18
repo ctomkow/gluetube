@@ -8,7 +8,10 @@ from time import sleep
 import daemon
 
 
-def start() -> None:
+def start(fg: bool = False) -> None:
+
+    if fg:  # a hack, def needs docker --init for SIGnals, also have SIG handling for when docker propogates the SIGnals down
+        _main()
 
     # TODO: specify a PID file. So we know how to reference the process to shut it down later
     with daemon.DaemonContext():
@@ -19,5 +22,4 @@ def _main() -> None:
 
     while True:
         sleep(0.1)
-
         # TODO: implement python schedule library for running pipelines. https://pypi.org/project/schedule/

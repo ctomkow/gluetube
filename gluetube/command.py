@@ -67,6 +67,11 @@ def start_daemon() -> None:
 
     gluetubed.start()
 
+
+def start_daemon_fg() -> None:
+
+    gluetubed.start(fg=True)
+
 # helper functions
 
 
