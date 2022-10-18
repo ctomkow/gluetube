@@ -30,7 +30,8 @@ setup(
         author_email=EMAIL,
         license='MIT',
         install_requires=[
-            'python-daemon>=2.3.1,<3.0.0'
+            'python-daemon>=2.3.1,<3.0.0',
+            'rocketry>=2.4.1,<3.0.0'
         ],
 
         entry_points={

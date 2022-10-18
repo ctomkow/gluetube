@@ -5,8 +5,6 @@
 
 # local imports
 import command
-import config
-import util
 
 # python imports
 import logging
@@ -23,7 +21,6 @@ class Gluetube:
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
 
-        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
         if args.init:
             command.init_gluetube()
         elif args.ls:
@@ -31,7 +28,7 @@ class Gluetube:
                 print(name[0])
         elif args.run:
             try:
-                command.run_pipeline(args.run, gt_cfg.pipeline_dir)
+                command.run_pipeline(args.run)
             except Exception as e:
                 logging.exception(e)
                 raise SystemExit(1)

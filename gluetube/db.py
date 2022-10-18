@@ -51,7 +51,8 @@ class Pipeline(Database):
                 id INTEGER PRIMARY KEY,
                 name TEXT UNIQUE,
                 py_name TEXT,
-                dir_name TEXT
+                dir_name TEXT,
+                cron TEXT
             )""")
 
     def all_pipelines(self) -> list:
@@ -74,3 +75,16 @@ class Pipeline(Database):
         params = (pipeline_name,)
         results = self._cur.execute(query, params)
         return results.fetchone()
+
+    def pipeline_cron(self, pipeline_name: str) -> str:
+
+        query = "SELECT cron FROM pipeline WHERE name = ?"
+        params = (pipeline_name,)
+        results = self._cur.execute(query, params)
+        return results.fetchone()
+
+    def pipeline_run_details(self) -> list:
+
+        query = "SELECT name, py_name, dir_name, cron FROM pipeline"
+        results = self._cur.execute(query)
+        return results.fetchall()

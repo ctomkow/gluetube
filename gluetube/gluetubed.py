@@ -1,6 +1,10 @@
 # Craig Tomkow
 # 2022-10-17
 
+# local imports
+from db import Pipeline
+from runner import Runner
+
 # python imports
 from time import sleep
 
@@ -20,9 +24,24 @@ def start(fg: bool = False) -> None:
 
 def _main() -> None:
 
+    db = Pipeline('gluetube.db')
+
     while True:
-        sleep(0.1)
-        # TODO: implement python schedule library for running pipelines. https://pypi.org/project/schedule/
-        # alternatives: 
-        #       https://github.com/Miksus/rocketry/
-        #       https://github.com/coleifer/huey
+
+        # TODO: check if pipeline has been updated
+
+        # TODO: need to track runners somehow, so we can gracefully kill them and restart them
+        #       track in memory not db, if service is stopped, the schedulers are killed also, so everything dies, i think
+
+        # TODO: need to check if a runner is running or not, as not to duplicate runners
+
+        state = {}
+
+        all_pipelines = db.pipeline_run_details()
+
+        for pipeline in all_pipelines:
+            # TODO: fork each runner
+            runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
+            runner.run()
+
+        sleep(1)

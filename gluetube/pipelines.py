@@ -18,26 +18,21 @@ class Pipeline(ABC):
         # self.status = ['running', 'crashed', 'completed']
 
         # stage is inside view of pipeline (e.g. reporting from within via decorators)
-        # self.stage = ['initializing', 'extracting', 'transforming', 'loading']
+        # self.stage = ['1', ... '9']
 
-        # if 'running', the stage is ['initializing'|'extracting'|'transforming'|'loading']
+        # if 'running', the stage is ['1', ... '9']
         # if 'crashed', the last stage the pipeline was in will be shown
-        # if 'completed', the last state of the pipeline was in will be shown (e.g. 'loading')
+        # if 'completed', the last state of the pipeline was in will be shown (e.g. '4')
 
         # TODO: set pipeline stage='initializing', an sqlite3 call
 
         db_store = Store('store.db')
 
+        # injecting stored key:values as environment variables into the running pipeline process context
         for group in variable_groups:
-            db_store.create_table(group)
-
-            # injecting stored key:values as environment variables into the running pipeline process context
-            # TODO: replace 'CONFL' with user provided grouping's that they want injected into the context
             key_values = db_store.all_key_values(group)
             for kv in key_values:
                 os.environ[f"{group}_{kv[0]}"] = kv[1]
-
-        # raise SystemExit
 
         self.run()
 
