@@ -23,3 +23,6 @@ def _main() -> None:
     while True:
         sleep(0.1)
         # TODO: implement python schedule library for running pipelines. https://pypi.org/project/schedule/
+        # alternatives: 
+        #       https://github.com/Miksus/rocketry/
+        #       https://github.com/coleifer/huey
