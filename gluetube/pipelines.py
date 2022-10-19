@@ -26,6 +26,8 @@ class Pipeline(ABC):
 
         # TODO: set pipeline stage='initializing', an sqlite3 call
 
+        # TODO: check to see if PPID is still alive, if not, then exit (to stop the cron)
+
         db_store = Store('store.db')
 
         # injecting stored key:values as environment variables into the running pipeline process context

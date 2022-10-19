@@ -14,32 +14,18 @@ import os
 from venv import EnvBuilder
 from pathlib import Path
 
-# 3rd party imports
-from rocketry import Rocketry
-from rocketry.conds import cron
-
 
 class Runner:
 
-    def __init__(self, pipeline_name: str, py_file_name: str, pipeline_dir_name: str, cron: str) -> None:
+    def __init__(self, pipeline_name: str, py_file_name: str, pipeline_dir_name: str) -> None:
 
         gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
         self.base_dir = gt_cfg.pipeline_dir
         self.p_name = pipeline_name
         self.py_file = py_file_name
         self.p_dir = pipeline_dir_name
-        self.p_cron = cron
 
-    def run(self, once=False) -> None:
-
-        if once:
-            self._run()
-        else:
-            app = Rocketry()
-            app.task(cron(self.p_cron), func=self._run, execution='main')
-            app.run()
-
-    def _run(self) -> None:
+    def run(self) -> None:
 
         # TODO: set pipeline status='running', an sqlite3 cal
 
