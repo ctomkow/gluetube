@@ -19,8 +19,8 @@ class Parser(ABC):
 
         try:
             self.filename = self.config.read(conf_locations)
-        except configparser.ParsingError:
-            raise
+        except configparser.ParsingError as e:
+            raise exceptions.ConfigFileParseError("Config file reading error.", self.filename) from e
 
         if not self.filename:
             raise exceptions.ConfigFileNotFoundError(conf_locations)

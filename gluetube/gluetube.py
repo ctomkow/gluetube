@@ -5,6 +5,7 @@
 
 # local imports
 import command
+import exceptions
 
 # python imports
 import logging
@@ -31,28 +32,54 @@ class Gluetube:
             try:
                 command.dev_msg_to_daemon(args.dev)
             except FileNotFoundError as e:
-                logging.exception(e)
+                if args.debug:
+                    logging.exception(f"Message to daemon failed. {e}")
+                else:
+                    logging.error(f"Message to daemon failed. {e}")
                 raise SystemExit(1)
             except ConnectionRefusedError as e:
-                logging.error(f"{e}. Is the daemon running?")
+                if args.debug:
+                    logging.exception(f"Is the daemon running? {e}")
+                else:
+                    logging.error(f"Is the daemon running? {e}")
                 raise SystemExit(1)
         elif 'DAEMON' in args:  # gluetube daemon level
             if args.foreground:
-                command.start_daemon_fg()
+                try:
+                    command.start_daemon_fg()
+                except exceptions.DaemonError as e:
+                    if args.debug:
+                        logging.exception(f"Daemon failure. {e}")
+                    else:
+                        logging.critical(f"Daemon failure. {e}")
+                    raise SystemExit(1)
             elif args.background:
-                command.start_daemon_bg()
+                try:
+                    command.start_daemon_bg()
+                except exceptions.DaemonError as e:
+                    if args.debug:
+                        logging.exception(f"Daemon failure. {e}")
+                    else:
+                        logging.critical(f"Daemon failure. {e}")
+                    raise SystemExit(1)
         elif 'PIPELINE' in args:  # gluetube pipeline level
             if args.run:
                 try:
                     command.run_pipeline(args.PIPELINE[0])
-                except Exception as e:
-                    logging.exception(e)
+                except (exceptions.dbError, exceptions.RunnerError) as e:
+                    if args.debug:
+                        logging.exception(f"Pipeline run failure. {e}")
+                    else:
+                        logging.critical(f"Pipeline run failure. {e}")
                     raise SystemExit(1)
             elif args.cron:
                 try:
                     command.pipeline_set_cron(args.PIPELINE[0], args.cron)
                 except ConnectionRefusedError as e:
-                    logging.error(f"{e}. Is the daemon running?")
+                    if args.debug:
+                        logging.exception(f"Is the daemon running? {e}")
+                    else:
+                        logging.error(f"Is the daemon running? {e}")
                     raise SystemExit(1)
 
         # gracefully exit
@@ -64,6 +91,8 @@ class Gluetube:
             description="Runs pipelines between systems"
         )
         # all flags here
+        parser.add_argument('--debug', action='store_true', help='Will print out more verbose logging, stacktrace, etc')
+
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
         group.add_argument('-i', '--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
@@ -87,8 +116,7 @@ class Gluetube:
 
     def _read_local_file(self, file_name: str) -> str:
 
-        with open(os.path.join(os.path.dirname(
-                os.path.realpath(__file__)), file_name)) as file:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), file_name)) as file:
             return file.read().strip()
 
     def _setup_logging(self) -> None:

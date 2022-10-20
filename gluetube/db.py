@@ -4,6 +4,7 @@
 # local imports
 import config
 import util
+import exceptions
 
 # python imports
 import sqlite3
@@ -15,7 +16,10 @@ class Database:
 
     def __init__(self, db_name: str, read_only: bool = True) -> None:
 
-        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+        try:
+            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cf', util.conf_dir()))
+        except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
+            raise exceptions.dbError(f"Failed to initialize database. {e}") from e
         if read_only:
             self._conn = sqlite3.connect(f"file:{gt_cfg.database_dir}/{db_name}?mode=ro", uri=True)
         else:

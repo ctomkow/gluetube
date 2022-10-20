@@ -4,6 +4,7 @@
 # local imports
 import config
 import util
+import exceptions
 
 # python imports
 import logging
@@ -19,7 +20,11 @@ class Runner:
 
     def __init__(self, pipeline_name: str, py_file_name: str, pipeline_dir_name: str) -> None:
 
-        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+        try:
+            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+        except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
+            raise exceptions.RunnerError(f"Failed to initialize runner. {e}") from e
+
         self.base_dir = gt_cfg.pipeline_dir
         self.p_name = pipeline_name
         self.py_file = py_file_name

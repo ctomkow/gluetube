@@ -7,6 +7,7 @@ import config
 import util
 from gluetubed import GluetubeDaemon
 from runner import Runner
+import exceptions
 
 # python imports
 from pathlib import Path
@@ -28,15 +29,30 @@ def init_gluetube() -> None:
 
 def ls_pipelines() -> list:
 
-    db = Pipeline('gluetube.db')
+    try:
+        db = Pipeline('gluetube.db')
+    except exceptions.dbError:
+        raise
+
     return db.all_pipelines()
 
 
 def run_pipeline(name: str) -> None:
-    db = Pipeline('gluetube.db')
+
+    try:
+        db = Pipeline('gluetube.db')
+    except exceptions.dbError:
+        raise
+
     pipeline_py = db.pipeline_py_name(name)
     pipeline_dir = db.pipeline_dir_name(name)
-    Runner(name, pipeline_py, pipeline_dir).run()
+
+    try:
+        runner = Runner(name, pipeline_py, pipeline_dir)
+    except exceptions.RunnerError:
+        raise
+
+    runner.run()
 
 
 # TODO: extract the message passing to it's own helper method
@@ -57,12 +73,18 @@ def dev_msg_to_daemon(msg: str) -> None:
 
 def start_daemon_bg() -> None:
 
-    GluetubeDaemon().start()
+    try:
+        GluetubeDaemon().start()
+    except exceptions.DaemonError:
+        raise
 
 
 def start_daemon_fg() -> None:
 
-    GluetubeDaemon().start(fg=True)
+    try:
+        GluetubeDaemon().start(fg=True)
+    except exceptions.DaemonError:
+        raise
 
 
 # TODO: extract the message passing to it's own helper method

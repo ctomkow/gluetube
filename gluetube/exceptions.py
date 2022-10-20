@@ -84,3 +84,33 @@ class PipelineLoadingError(PipelineError):
     def __init__(self) -> None:
         msg = "The pipeline data loading failed"
         super().__init__(msg)
+
+# runner exceptions
+
+
+class RunnerError(Exception):
+
+    """ Base runner exception. Call a more specific exception that inherits this one"""
+
+    def __init__(self, msg) -> None:
+        super().__init__(msg)
+
+# db exceptions
+
+
+class dbError(Exception):
+
+    """ Base database exception. Call a more specific exception that inherits this one"""
+
+    def __init__(self, msg) -> None:
+        super().__init__(msg)
+
+# daemon exceptions
+
+
+class DaemonError(Exception):
+
+    """ Base daemon exception. Call a more specific exception that inherits this one"""
+
+    def __init__(self, msg) -> None:
+        super().__init__(msg)
