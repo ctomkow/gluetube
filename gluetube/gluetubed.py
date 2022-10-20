@@ -3,6 +3,7 @@
 
 # local imports
 import logging
+
 from db import Pipeline
 from runner import Runner
 import config
@@ -13,6 +14,7 @@ import socket
 from pathlib import Path
 import struct
 import json
+from json.decoder import JSONDecodeError
 
 # 3rd party imports
 import daemon
@@ -85,9 +87,17 @@ class GluetubeDaemon:
             msg = self._recvall(conn, msg_len).decode()
 
             # TODO: try/except to validate JSON & keys exist to protect the daemon!
-            msg = json.loads(msg)
-            func = msg['function']
-            args = msg['parameters']
+            try:
+                msg = json.loads(msg)
+            except JSONDecodeError as e:
+                logging.error(f"{e}. json decoding failed. not valid json.")
+                continue
+            try:
+                func = msg['function']
+                args = msg['parameters']
+            except KeyError as e:
+                logging.error(f"{e} key not found.")
+                continue
             # call rpc method
             getattr(self, func)(*args)
 
