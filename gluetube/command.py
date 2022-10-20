@@ -5,7 +5,7 @@
 from db import Pipeline, Store
 import config
 import util
-from gluetubed import GTdaemon
+from gluetubed import GluetubeDaemon
 from runner import Runner
 
 # python imports
@@ -20,9 +20,9 @@ def init_gluetube() -> None:
     gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
     Path(gt_cfg.pipeline_dir).mkdir(exist_ok=True)
     Path(gt_cfg.database_dir).mkdir(exist_ok=True)
-    db = Pipeline('gluetube.db')
+    db = Pipeline('gluetube.db', read_only=False)
     db.create_schema()
-    db = Store('store.db')
+    db = Store('store.db', read_only=False)
     print('setup complete.')
 
 
@@ -55,29 +55,31 @@ def dev_msg_to_daemon(msg: str) -> None:
         raise
 
 
-def start_daemon() -> None:
+def start_daemon_bg() -> None:
 
-    GTdaemon().start()
+    GluetubeDaemon().start()
 
 
 def start_daemon_fg() -> None:
 
-    GTdaemon().start(fg=True)
+    GluetubeDaemon().start(fg=True)
 
 
 # TODO: extract the message passing to it's own helper method
-def pipeline_update_cron(name: str, cron: str) -> None:
+def pipeline_set_cron(name: str, cron: str) -> None:
 
-    msg = {'function': '_update_schedule_cron', 'parameters': [name, cron]}
-    msg = json.dumps(msg)
+    msg_dict = {'function': 'set_cron', 'parameters': [name, cron]}
+    msg_str = json.dumps(msg_dict)
+    msg_bytes = str.encode(msg_str)
+    msg_packet = struct.pack('>I', len(msg_bytes)) + msg_bytes
+
     gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
     server_address = gt_cfg.socket_file
     if not Path(gt_cfg.socket_file).exists():
         raise FileNotFoundError(F"Unix domain socket, {gt_cfg.socket_file}, not found")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.connect(server_address)
-    msg = struct.pack('>I', len(msg)) + str.encode(msg)
     try:
-        sock.sendall(msg)
+        sock.connect(server_address)
+        sock.sendall(msg_packet)
     except ConnectionRefusedError:
         raise

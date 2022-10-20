@@ -36,11 +36,11 @@ class Gluetube:
             except ConnectionRefusedError as e:
                 logging.error(f"{e}. Is the daemon running?")
                 raise SystemExit(1)
-        elif 'START' in args:  # gluetube start level
+        elif 'DAEMON' in args:  # gluetube daemon level
             if args.foreground:
                 command.start_daemon_fg()
             elif args.background:
-                command.start_daemon()
+                command.start_daemon_bg()
         elif 'PIPELINE' in args:  # gluetube pipeline level
             if args.run:
                 try:
@@ -48,8 +48,12 @@ class Gluetube:
                 except Exception as e:
                     logging.exception(e)
                     raise SystemExit(1)
-            elif args.updatecron:
-                command.pipeline_update_cron(args.PIPELINE[0], args.updatecron)
+            elif args.cron:
+                try:
+                    command.pipeline_set_cron(args.PIPELINE[0], args.cron)
+                except ConnectionRefusedError as e:
+                    logging.error(f"{e}. Is the daemon running?")
+                    raise SystemExit(1)
 
         # gracefully exit
         raise SystemExit(0)
@@ -67,16 +71,16 @@ class Gluetube:
         group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
 
         sub_parser = parser.add_subparsers()
-        start = sub_parser.add_parser('start', description='start gluetube as a daemon process')
-        start_group = start.add_mutually_exclusive_group()
-        start_group.add_argument('START', action='store', metavar='', nargs='?')
-        start_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
-        start_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
+        daemon = sub_parser.add_parser('daemon', description='start gluetube as a daemon process')
+        daemon_group = daemon.add_mutually_exclusive_group()
+        daemon_group.add_argument('DAEMON', action='store', metavar='', nargs='?')
+        daemon_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
+        daemon_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
 
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
         pipeline.add_argument('PIPELINE', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline.add_argument('-r', '--run', action='store_true', help='manually run the pipeline once')
-        pipeline.add_argument('--updatecron', action='store', metavar='CRON', help='update cron schedule of pipeline')
+        pipeline.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
         return parser.parse_args()
 
 # helper functions
