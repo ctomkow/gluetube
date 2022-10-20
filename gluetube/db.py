@@ -62,29 +62,36 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline_py_name(self, pipeline_name: str) -> str:
+    def pipeline_py_name(self, name: str) -> str:
 
         query = "SELECT py_name FROM pipeline WHERE name = ?"
-        params = (pipeline_name,)
+        params = (name,)
         results = self._cur.execute(query, params)
-        return results.fetchone()
+        return results.fetchone()[0]
 
     def pipeline_dir_name(self, pipeline_name: str) -> str:
 
         query = "SELECT dir_name FROM pipeline WHERE name = ?"
         params = (pipeline_name,)
         results = self._cur.execute(query, params)
-        return results.fetchone()
+        return results.fetchone()[0]
 
     def pipeline_cron(self, pipeline_name: str) -> str:
 
         query = "SELECT cron FROM pipeline WHERE name = ?"
         params = (pipeline_name,)
         results = self._cur.execute(query, params)
-        return results.fetchone()
+        return results.fetchone()[0]
 
     def pipeline_run_details(self) -> list:
 
         query = "SELECT name, py_name, dir_name, cron FROM pipeline"
         results = self._cur.execute(query)
         return results.fetchall()
+
+    def pipeline_update_cron(self, name: str, cron: str) -> None:
+
+        query = "UPDATE pipeline SET cron = ? WHERE name = ?"
+        params = (name, cron)
+        self._cur.execute(query, params)
+        self.con.commit()

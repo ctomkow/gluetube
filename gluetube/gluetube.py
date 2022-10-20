@@ -21,21 +21,35 @@ class Gluetube:
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
 
+        # gluetube level
         if args.init:
             command.init_gluetube()
         elif args.ls:
             for name in command.ls_pipelines():
                 print(name[0])
-        elif args.run:
+        elif args.dev:
             try:
-                command.run_pipeline(args.run)
-            except Exception as e:
+                command.dev_msg_to_daemon(args.dev)
+            except FileNotFoundError as e:
                 logging.exception(e)
                 raise SystemExit(1)
-        elif args.foreground:
-            command.start_daemon_fg()
-        elif args.start:
-            command.start_daemon()
+            except ConnectionRefusedError as e:
+                logging.error(f"{e}. Is the daemon running?")
+                raise SystemExit(1)
+        elif 'START' in args:  # gluetube start level
+            if args.foreground:
+                command.start_daemon_fg()
+            elif args.background:
+                command.start_daemon()
+        elif 'PIPELINE' in args:  # gluetube pipeline level
+            if args.run:
+                try:
+                    command.run_pipeline(args.PIPELINE[0])
+                except Exception as e:
+                    logging.exception(e)
+                    raise SystemExit(1)
+            elif args.updatecron:
+                command.pipeline_update_cron(args.PIPELINE[0], args.updatecron)
 
         # gracefully exit
         raise SystemExit(0)
@@ -48,13 +62,21 @@ class Gluetube:
         # all flags here
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
-        group.add_argument('-l', '--ls', action='store_true', help='List all available pipelines')
-        group.add_argument('-r', '--run', action='store', metavar='NAME',
-                           help='Provide the pipeline name to run. e.g. pipeline --run my_pipeline')
         group.add_argument('-i', '--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
-        start_parser = parser.add_subparsers(dest='start')
-        start = start_parser.add_parser('start', description='start gluetube as a daemon process')
-        start.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
+        group.add_argument('-l', '--ls', action='store_true', help='List all available pipelines')
+        group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
+
+        sub_parser = parser.add_subparsers()
+        start = sub_parser.add_parser('start', description='start gluetube as a daemon process')
+        start_group = start.add_mutually_exclusive_group()
+        start_group.add_argument('START', action='store', metavar='', nargs='?')
+        start_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
+        start_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
+
+        pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
+        pipeline.add_argument('PIPELINE', action='store', type=str, nargs=1, help='name of pipeline to act on')
+        pipeline.add_argument('-r', '--run', action='store_true', help='manually run the pipeline once')
+        pipeline.add_argument('--updatecron', action='store', metavar='CRON', help='update cron schedule of pipeline')
         return parser.parse_args()
 
 # helper functions
