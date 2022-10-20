@@ -16,7 +16,7 @@ import struct
 import json
 
 
-def init_gluetube() -> None:
+def gluetube_init() -> None:
 
     gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
     Path(gt_cfg.pipeline_dir).mkdir(exist_ok=True)
@@ -27,7 +27,7 @@ def init_gluetube() -> None:
     print('setup complete.')
 
 
-def ls_pipelines() -> list:
+def gluetube_ls() -> list:
 
     try:
         db = Pipeline('gluetube.db')
@@ -37,7 +37,7 @@ def ls_pipelines() -> list:
     return db.all_pipelines()
 
 
-def run_pipeline(name: str) -> None:
+def pipeline_run(name: str) -> None:
 
     try:
         db = Pipeline('gluetube.db')
@@ -56,7 +56,7 @@ def run_pipeline(name: str) -> None:
 
 
 # TODO: extract the message passing to it's own helper method
-def dev_msg_to_daemon(msg: str) -> None:
+def gluetube_dev(msg: str) -> None:
 
     gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
     server_address = gt_cfg.socket_file
@@ -71,7 +71,7 @@ def dev_msg_to_daemon(msg: str) -> None:
         raise
 
 
-def start_daemon_bg() -> None:
+def daemon_bg() -> None:
 
     try:
         GluetubeDaemon().start()
@@ -79,7 +79,7 @@ def start_daemon_bg() -> None:
         raise
 
 
-def start_daemon_fg() -> None:
+def daemon_fg() -> None:
 
     try:
         GluetubeDaemon().start(fg=True)
@@ -88,7 +88,7 @@ def start_daemon_fg() -> None:
 
 
 # TODO: extract the message passing to it's own helper method
-def pipeline_set_cron(name: str, cron: str) -> None:
+def pipeline_cron(name: str, cron: str) -> None:
 
     msg_dict = {'function': 'set_cron', 'parameters': [name, cron]}
     msg_str = json.dumps(msg_dict)
@@ -105,3 +105,8 @@ def pipeline_set_cron(name: str, cron: str) -> None:
         sock.sendall(msg_packet)
     except ConnectionRefusedError:
         raise
+
+def pipeline_details(name: str) -> dict:
+
+    # TODO: 
+    pass

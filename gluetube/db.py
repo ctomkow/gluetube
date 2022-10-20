@@ -17,7 +17,7 @@ class Database:
     def __init__(self, db_name: str, read_only: bool = True) -> None:
 
         try:
-            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cf', util.conf_dir()))
+            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
         except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
             raise exceptions.dbError(f"Failed to initialize database. {e}") from e
         if read_only:

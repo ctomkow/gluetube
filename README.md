@@ -9,6 +9,7 @@ docker run -itd --name gluetube --net=host -v ~/code/gluetube/gluetube:/home/glu
 
 docker exec -it gluetube bash
 > cd ~/.local/lib/python3.10/site-packages/gluetube
+
 > ./gluetube.py --init
 
 ## design
