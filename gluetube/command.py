@@ -66,24 +66,26 @@ def pipeline_run(name: str) -> None:
 
 def gluetube_dev(msg: str) -> None:
 
+    msg_bytes = str.encode(msg)
+    msg = struct.pack('>I', len(msg_bytes)) + msg_bytes
     try:
         _send_rpc_msg_to_daemon(msg)
     except exceptions.rpcError:
         raise
 
 
-def daemon_bg() -> None:
+def daemon_fg(debug: bool) -> None:
 
     try:
-        GluetubeDaemon().start()
+        GluetubeDaemon(debug).start(fg=True)
     except exceptions.DaemonError:
         raise
 
 
-def daemon_fg() -> None:
+def daemon_bg(debug: bool) -> None:
 
     try:
-        GluetubeDaemon().start(fg=True)
+        GluetubeDaemon(debug).start()
     except exceptions.DaemonError:
         raise
 

@@ -46,7 +46,7 @@ class Gluetube:
         elif 'DAEMON' in args:  # gluetube daemon level
             if args.foreground:
                 try:
-                    command.daemon_fg()
+                    command.daemon_fg(args.debug)
                 except exceptions.DaemonError as e:
                     if args.debug:
                         logging.exception(f"Daemon failure. {e}")
@@ -55,7 +55,7 @@ class Gluetube:
                     raise SystemExit(1)
             elif args.background:
                 try:
-                    command.daemon_bg()
+                    command.daemon_bg(args.debug)
                 except exceptions.DaemonError as e:
                     if args.debug:
                         logging.exception(f"Daemon failure. {e}")

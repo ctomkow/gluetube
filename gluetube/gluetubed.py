@@ -29,9 +29,11 @@ class GluetubeDaemon:
     _db = None
     _scheduler = None
     _sock = None
+    _debug = None
 
-    def __init__(self) -> None:
+    def __init__(self, debug: bool) -> None:
 
+        self._debug = debug
         # setup
         try:
             self._db = Pipeline('gluetube.db', read_only=False)
@@ -61,16 +63,16 @@ class GluetubeDaemon:
 
     def start(self, fg: bool = False) -> None:
 
-        if fg:  # a hack, def needs docker --init for SIGnals, also have SIG handling for when docker propogates the SIGnals down
-            self._main(self._scheduler, self._db, self._sock)
+        if fg:  # TODO: a hack, needs docker --init for SIGnals, also SIG handling when docker propogates the SIGnals down
+            self._main(self._scheduler, self._db, self._sock, self._debug)
 
         # TODO: specify a PID file. So we know how to reference the process to shut it down later
         with daemon.DaemonContext():
-            self._main(self._scheduler, self._db, self._sock)
+            self._main(self._scheduler, self._db, self._sock, self._debug)
 
     ####################################### DAEMON LOOP #######################################
 
-    def _main(self, scheduler: BackgroundScheduler, db: Pipeline, sock: socket.socket) -> None:
+    def _main(self, scheduler: BackgroundScheduler, db: Pipeline, sock: socket.socket, debug: bool) -> None:
 
         # keyword arguments for all RPC method calls
         kwargs = {'scheduler': scheduler, 'db': db}
@@ -95,21 +97,32 @@ class GluetubeDaemon:
             try:
                 msg = json.loads(msg)
             except JSONDecodeError as e:
-                logging.error(f"RPC call failed. {e}. not valid json.")
-                continue
+                if debug:
+                    logging.exception(f"RPC call failed. {e}. not valid json.")
+                    continue
+                else:
+                    logging.error(f"RPC call failed. {e}. not valid json.")
+                    continue
             try:
                 func = msg['function']
                 args = msg['parameters']
-            except KeyError as e:
-                logging.error(f"RPC call failed. '{e}' key not found.")
-                continue
+            except (KeyError, TypeError) as e:
+                if debug:
+                    logging.exception(f"RPC call failed. '{e}' key not found.")
+                    continue
+                else:
+                    logging.error(f"RPC call failed. '{e}' key not found.")
+                    continue
             # call rpc method
-            # TODO: pass debug flag into daemon for verbose output
             try:
                 getattr(self, func)(*args, **kwargs)
             except Exception as e:  # catch all exceptions, we don't want the daemon to crash
-                logging.error(f"RPC call failed. {e}.")
-                continue
+                if debug:
+                    logging.exception(f"RPC call failed. {e}.")
+                    continue
+                else:
+                    logging.error(f"RPC call failed. {e}.")
+                    continue
 
     ##################################### END DAEMON LOOP #########################################
 
