@@ -15,6 +15,10 @@ import socket
 import struct
 import json
 
+# 3rd party imports
+from prettytable import PrettyTable
+from prettytable import SINGLE_BORDER
+
 
 def gluetube_init() -> None:
 
@@ -29,12 +33,17 @@ def gluetube_init() -> None:
 
 def gluetube_ls() -> list:
 
+    table = PrettyTable()
+    table.set_style(SINGLE_BORDER)
+    table.field_names = ['pipeline name', 'py file', 'directory name', 'cron schedule']
     try:
         db = Pipeline('gluetube.db')
     except exceptions.dbError:
         raise
 
-    return db.all_pipelines()
+    details = db.all_pipelines_details()
+    table.add_rows(details)
+    return table
 
 
 def pipeline_run(name: str) -> None:
@@ -55,19 +64,11 @@ def pipeline_run(name: str) -> None:
     runner.run()
 
 
-# TODO: extract the message passing to it's own helper method
 def gluetube_dev(msg: str) -> None:
 
-    gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-    server_address = gt_cfg.socket_file
-    if not Path(gt_cfg.socket_file).exists():
-        raise FileNotFoundError(F"Unix domain socket, {gt_cfg.socket_file}, not found")
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.connect(server_address)
-    msg = struct.pack('>I', len(msg)) + str.encode(msg)
     try:
-        sock.sendall(msg)
-    except ConnectionRefusedError:
+        _send_rpc_msg_to_daemon(msg)
+    except exceptions.rpcError:
         raise
 
 
@@ -87,26 +88,49 @@ def daemon_fg() -> None:
         raise
 
 
-# TODO: extract the message passing to it's own helper method
 def pipeline_cron(name: str, cron: str) -> None:
 
-    msg_dict = {'function': 'set_cron', 'parameters': [name, cron]}
+    msg = _craft_rpc_msg('set_cron', [name, cron])
+
+    try:
+        _send_rpc_msg_to_daemon(msg)
+    except exceptions.rpcError:
+        raise
+
+
+def pipeline_py(name: str, file: str) -> None:
+
+    msg = _craft_rpc_msg('set_py', [name, file])
+
+    try:
+        _send_rpc_msg_to_daemon(msg)
+    except exceptions.rpcError:
+        raise
+
+# helper functions
+
+
+def _craft_rpc_msg(func: str, params: list) -> bytes:
+
+    msg_dict = {'function': func, 'parameters': params}
     msg_str = json.dumps(msg_dict)
     msg_bytes = str.encode(msg_str)
-    msg_packet = struct.pack('>I', len(msg_bytes)) + msg_bytes
+    return struct.pack('>I', len(msg_bytes)) + msg_bytes
 
-    gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+
+def _send_rpc_msg_to_daemon(msg: bytes) -> None:
+
+    try:
+        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+    except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
+        raise exceptions.rpcError(f"RPC call failed. {e}") from e
+
     server_address = gt_cfg.socket_file
     if not Path(gt_cfg.socket_file).exists():
-        raise FileNotFoundError(F"Unix domain socket, {gt_cfg.socket_file}, not found")
+        raise exceptions.rpcError(f"Unix domain socket, {gt_cfg.socket_file}, not found")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         sock.connect(server_address)
-        sock.sendall(msg_packet)
-    except ConnectionRefusedError:
-        raise
-
-def pipeline_details(name: str) -> dict:
-
-    # TODO: 
-    pass
+        sock.sendall(msg)
+    except ConnectionRefusedError as e:
+        raise exceptions.rpcError(f"RPC call failed. {e}") from e

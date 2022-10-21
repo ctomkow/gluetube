@@ -3,6 +3,7 @@
 
 # local imports
 import logging
+import sqlite3
 from db import Pipeline
 from runner import Runner
 import config
@@ -67,6 +68,8 @@ class GluetubeDaemon:
         with daemon.DaemonContext():
             self._main(self._scheduler, self._db, self._sock)
 
+    ####################################### DAEMON LOOP #######################################
+
     def _main(self, scheduler: BackgroundScheduler, db: Pipeline, sock: socket.socket) -> None:
 
         # keyword arguments for all RPC method calls
@@ -101,11 +104,14 @@ class GluetubeDaemon:
                 logging.error(f"RPC call failed. '{e}' key not found.")
                 continue
             # call rpc method
+            # TODO: pass debug flag into daemon for verbose output
             try:
                 getattr(self, func)(*args, **kwargs)
-            except Exception as e:
+            except Exception as e:  # catch all exceptions, we don't want the daemon to crash
                 logging.error(f"RPC call failed. {e}.")
                 continue
+
+    ##################################### END DAEMON LOOP #########################################
 
     # Helper function to recv number of bytes or return None if EOF is hit
     def _recvall(self, sock: socket.socket, num_bytes: int) -> bytearray:
@@ -139,16 +145,42 @@ class GluetubeDaemon:
             if not scheduler.get_job(pipeline[0]):
                 scheduler.add_job(runner.run, cron, id=pipeline[0])
 
-    # ###############################################################################
+    # ###############################################################################################
     # RPC methods that are called from daemon loop when msg received from unix socket
     #
-    # these methods should update scheduler AND database
+    # RPC methods should be writing to the database and interacting with the schedule (if applicable)
+    # these methods should update scheduler AND database at the same time (if applicable)
     # therefore, all RPC methods should include the scheduler and db keyword arguments
 
     def set_cron(self, pipeline_name: str, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
         try:
             scheduler.modify_job(pipeline_name, trigger=CronTrigger.from_crontab(crontab))
-        except JobLookupError:
-            raise
-        db.pipeline_set_cron(pipeline_name, crontab)
-        # TODO: try/except the db call, if it fails, then call db for existing schedule, and set the old schedule (e.g. rollback the change)
+        except JobLookupError as e:
+            raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+
+        try:
+            db.pipeline_set_cron(pipeline_name, crontab)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+    def set_py(self, pipeline_name: str, file_name: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            pipeline = db.pipeline_details(pipeline_name)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to query database. {e}") from e
+
+        try:
+            runner = Runner(pipeline[0], file_name, pipeline[2])
+        except exceptions.RunnerError as e:
+            raise exceptions.DaemonError(f"Failed to create runner. {e}") from e
+
+        try:
+            scheduler.modify_job(pipeline_name, func=runner.run)
+        except JobLookupError as e:
+            raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+
+        try:
+            db.pipeline_set_py(pipeline_name, file_name)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e

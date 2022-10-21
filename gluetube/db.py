@@ -54,7 +54,7 @@ class Store(Database):
 class Pipeline(Database):
 
     def create_schema(self) -> None:
-
+        # TODO: need a paused field here
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline(
                 id INTEGER PRIMARY KEY,
@@ -65,10 +65,17 @@ class Pipeline(Database):
             )""")
         self._conn.commit()
 
-    def all_pipelines(self) -> list:
+    def pipeline_details(self, name: str) -> list:
+
+        query = "SELECT name, py_name, dir_name, cron FROM pipeline WHERE name = ?"
+        params = (name,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()
+
+    def all_pipelines_details(self) -> list:
 
         results = self._conn.cursor().execute("""
-            SELECT name FROM pipeline
+            SELECT name, py_name, dir_name, cron FROM pipeline
         """)
         return results.fetchall()
 
@@ -103,5 +110,12 @@ class Pipeline(Database):
 
         query = "UPDATE pipeline SET cron = ? WHERE name = ?"
         params = (cron, name)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def pipeline_set_py(self, name: str, py_name: str) -> None:
+
+        query = "UPDATE pipeline SET py_name = ? WHERE name = ?"
+        params = (py_name, name)
         self._conn.cursor().execute(query, params)
         self._conn.commit()

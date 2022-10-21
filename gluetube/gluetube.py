@@ -27,25 +27,17 @@ class Gluetube:
             command.gluetube_init()
         elif args.ls:
             try:
-                pipeline_names = command.gluetube_ls()
+                print(command.gluetube_ls())
             except exceptions.dbError as e:
                 if args.debug:
                     logging.exception(f"List pipelines failed. {e}")
                 else:
                     logging.error(f"List pipelines failed. {e}")
                 raise SystemExit(1)
-            for name in pipeline_names:
-                print(name[0])
         elif args.dev:
             try:
                 command.gluetube_dev(args.dev)
-            except FileNotFoundError as e:
-                if args.debug:
-                    logging.exception(f"Message to daemon failed. {e}")
-                else:
-                    logging.error(f"Message to daemon failed. {e}")
-                raise SystemExit(1)
-            except ConnectionRefusedError as e:
+            except exceptions.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
                 else:
@@ -80,19 +72,19 @@ class Gluetube:
                     else:
                         logging.critical(f"Pipeline run failure. {e}")
                     raise SystemExit(1)
-            elif args.cron:
+            elif args.py:
                 try:
-                    command.pipeline_cron(args.PIPELINE[0], args.cron)
-                except ConnectionRefusedError as e:
+                    command.pipeline_py(args.PIPELINE[0], args.py)
+                except exceptions.rpcError as e:
                     if args.debug:
                         logging.exception(f"Is the daemon running? {e}")
                     else:
                         logging.error(f"Is the daemon running? {e}")
                     raise SystemExit(1)
-            elif args.details:
+            elif args.cron:
                 try:
-                    command.pipeline_details(args.PIPELINE[0])
-                except ConnectionRefusedError as e:
+                    command.pipeline_cron(args.PIPELINE[0], args.cron)
+                except exceptions.rpcError as e:
                     if args.debug:
                         logging.exception(f"Is the daemon running? {e}")
                     else:
@@ -126,8 +118,8 @@ class Gluetube:
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
         pipeline.add_argument('PIPELINE', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline.add_argument('-r', '--run', action='store_true', help='manually run the pipeline once')
+        pipeline.add_argument('--py', action='store', metavar='FILE', help="set py file name")
         pipeline.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
-        pipeline.add_argument('-d', '--details', action='store_true', help='list details of the pipeline')
 
         return parser.parse_args()
 

@@ -114,3 +114,13 @@ class DaemonError(Exception):
 
     def __init__(self, msg) -> None:
         super().__init__(msg)
+
+# rpc exceptions
+
+
+class rpcError(Exception):
+
+    """ Base RPC exception. Call a more specific exception that inherits this one"""
+
+    def __init__(self, msg) -> None:
+        super().__init__(msg)
