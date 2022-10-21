@@ -194,26 +194,3 @@ class GluetubeDaemon:
             db.pipeline_set_cron(pipeline_name, crontab)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
-
-    # TODO: remove this, and associated cli command. We should not be manually setting the py file, it should be auto-discovered
-    def set_py(self, pipeline_name: str, file_name: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
-
-        try:
-            pipeline = db.pipeline_details(pipeline_name)
-        except sqlite3.Error as e:
-            raise exceptions.DaemonError(f"Failed to query database. {e}") from e
-
-        try:
-            runner = Runner(pipeline[0], file_name, pipeline[2])
-        except exceptions.RunnerError as e:
-            raise exceptions.DaemonError(f"Failed to create runner. {e}") from e
-
-        try:
-            scheduler.modify_job(pipeline_name, func=runner.run)
-        except JobLookupError as e:
-            raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
-
-        try:
-            db.pipeline_set_py(pipeline_name, file_name)
-        except sqlite3.Error as e:
-            raise exceptions.DaemonError(f"Failed to update database. {e}") from e

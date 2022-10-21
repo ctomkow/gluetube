@@ -100,16 +100,6 @@ def pipeline_cron(name: str, cron: str) -> None:
     except exceptions.rpcError:
         raise
 
-
-def pipeline_py(name: str, file: str) -> None:
-
-    msg = _craft_rpc_msg('set_py', [name, file])
-
-    try:
-        _send_rpc_msg_to_daemon(msg)
-    except exceptions.rpcError:
-        raise
-
 # helper functions
 
 
