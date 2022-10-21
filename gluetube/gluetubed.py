@@ -108,20 +108,20 @@ class GluetubeDaemon:
                 args = msg['parameters']
             except (KeyError, TypeError) as e:
                 if debug:
-                    logging.exception(f"RPC call failed. '{e}' key not found.")
+                    logging.exception(f"RPC call failed. {e}")
                     continue
                 else:
-                    logging.error(f"RPC call failed. '{e}' key not found.")
+                    logging.error(f"RPC call failed. {e}")
                     continue
             # call rpc method
             try:
                 getattr(self, func)(*args, **kwargs)
             except Exception as e:  # catch all exceptions, we don't want the daemon to crash
                 if debug:
-                    logging.exception(f"RPC call failed. {e}.")
+                    logging.exception(f"RPC call failed. {e}")
                     continue
                 else:
-                    logging.error(f"RPC call failed. {e}.")
+                    logging.error(f"RPC call failed. {e}")
                     continue
 
     ##################################### END DAEMON LOOP #########################################
