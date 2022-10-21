@@ -81,8 +81,8 @@ def _symlink_gluetube_to_venv(venv_dir: str) -> None:
 
     # 3.10
     py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
-    # TODO: fix absolute path in src
-    src = f"/home/gluetube/.local/lib/python{py_version}/site-packages/gluetube"
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    src = f"{dir_path}"
     dst = f"{venv_dir}/lib/python{py_version}/site-packages/gluetube"
     os.symlink(src, dst)
 
