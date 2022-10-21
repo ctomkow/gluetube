@@ -114,6 +114,7 @@ class Gluetube:
         daemon_group.add_argument('DAEMON', action='store', metavar='', nargs='?')
         daemon_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
         daemon_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
+        # TODO: gluetube daemon -s --stop. Needs a PID file to be tracked in the daemon, also specify it's location in gluetube.cfg
 
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
         pipeline.add_argument('PIPELINE', action='store', type=str, nargs=1, help='name of pipeline to act on')

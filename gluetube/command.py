@@ -46,6 +46,7 @@ def gluetube_ls() -> list:
     return table
 
 
+# TODO: change this to making an RPC call to the daemon to trigger the scheduler to run pipeline once, immediately
 def pipeline_run(name: str) -> None:
 
     try:
