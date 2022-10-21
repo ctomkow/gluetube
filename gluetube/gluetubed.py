@@ -16,6 +16,7 @@ from pathlib import Path
 import struct
 import json
 from json.decoder import JSONDecodeError
+import os
 
 # 3rd party imports
 import daemon
@@ -31,7 +32,27 @@ class GluetubeDaemon:
     _sock = None
     _debug = None
 
-    def __init__(self, debug: bool) -> None:
+    def __init__(self) -> None:
+
+        pass
+
+    def start(self, debug: bool = False, fg: bool = False) -> None:
+
+        if fg:  # TODO: a hack, needs docker --init for SIGnals, also SIG handling when docker propogates the SIGnals down
+            self._setup(debug)
+
+        # TODO: send logs to proper location of daemon
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with daemon.DaemonContext(
+                working_directory=dir_path,
+                stdout=open("./stdout.log", "wb"), stderr=open("./stderr.log", "wb")
+                ):
+            self._setup(debug)
+
+    # must setup everything after the daemon context, otherwise the daemon closes all file descriptors on me
+    def _setup(self, debug: bool) -> None:
+
+        self._write_pid()
 
         self._debug = debug
         # setup
@@ -61,14 +82,7 @@ class GluetubeDaemon:
         if not self._scheduler.running:
             self._scheduler.start()
 
-    def start(self, fg: bool = False) -> None:
-
-        if fg:  # TODO: a hack, needs docker --init for SIGnals, also SIG handling when docker propogates the SIGnals down
-            self._main(self._scheduler, self._db, self._sock, self._debug)
-
-        # TODO: specify a PID file. So we know how to reference the process to shut it down later
-        with daemon.DaemonContext():
-            self._main(self._scheduler, self._db, self._sock, self._debug)
+        self._main(self._scheduler, self._db, self._sock, self._debug)
 
     ####################################### DAEMON LOOP #######################################
 
@@ -126,6 +140,11 @@ class GluetubeDaemon:
 
     ##################################### END DAEMON LOOP #########################################
 
+    def _write_pid(self) -> None:
+
+        with open('/tmp/gluetube.pid', 'w', encoding="utf-8") as f:
+            f.write(str(os.getpid()))
+
     # Helper function to recv number of bytes or return None if EOF is hit
     def _recvall(self, sock: socket.socket, num_bytes: int) -> bytearray:
 
@@ -176,6 +195,7 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
+    # TODO: remove this, and associated cli command. We should not be manually setting the py file, it should be auto-discovered
     def set_py(self, pipeline_name: str, file_name: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:

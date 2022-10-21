@@ -42,5 +42,6 @@ class Gluetube(Parser):
             self.pipeline_dir = self.config['gluetube']['PIPELINE_DIR']
             self.database_dir = self.config['gluetube']['DATABASE_DIR']
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
+            self.pid_file = self.config['gluetube']['PID_FILE']
         except KeyError as e:
             raise exceptions.ConfigFileParseError(f"Failed to lookup key, {e}", self.filename) from e

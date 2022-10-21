@@ -26,3 +26,4 @@ gluetube.code-workspace
 .coverage
 !setup.cfg
 .mypy_cache
+*.log

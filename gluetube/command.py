@@ -23,8 +23,8 @@ from prettytable import SINGLE_BORDER
 def gluetube_init() -> None:
 
     gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-    Path(gt_cfg.pipeline_dir).mkdir(exist_ok=True)
-    Path(gt_cfg.database_dir).mkdir(exist_ok=True)
+    Path(gt_cfg.pipeline_dir).mkdir(parents=True, exist_ok=True)
+    Path(gt_cfg.database_dir).mkdir(parents=True, exist_ok=True)
     db = Pipeline('gluetube.db', read_only=False)
     db.create_schema()
     db = Store('store.db', read_only=False)
@@ -78,7 +78,7 @@ def gluetube_dev(msg: str) -> None:
 def daemon_fg(debug: bool) -> None:
 
     try:
-        GluetubeDaemon(debug).start(fg=True)
+        GluetubeDaemon().start(debug, fg=True)
     except exceptions.DaemonError:
         raise
 
@@ -86,7 +86,7 @@ def daemon_fg(debug: bool) -> None:
 def daemon_bg(debug: bool) -> None:
 
     try:
-        GluetubeDaemon(debug).start()
+        GluetubeDaemon().start(debug)
     except exceptions.DaemonError:
         raise
 
