@@ -11,6 +11,7 @@ import exceptions
 import logging
 import argparse
 import os
+from pathlib import Path
 
 # 3rd party imports
 
@@ -21,6 +22,7 @@ class Gluetube:
 
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
+        os.chdir(Path(__file__).parent.resolve())
 
         # gluetube level
         if args.init:

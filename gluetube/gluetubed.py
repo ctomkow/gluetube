@@ -42,7 +42,7 @@ class GluetubeDaemon:
             self._setup(debug)
 
         # TODO: send logs to proper location of daemon
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = Path(__file__).parent.resolve()
         with daemon.DaemonContext(
                 working_directory=dir_path,
                 stdout=open("./stdout.log", "wb"), stderr=open("./stderr.log", "wb")
