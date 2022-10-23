@@ -25,6 +25,10 @@ class Database:
         else:
             self._conn = sqlite3.connect(f"{gt_cfg.database_dir}/{db_name}")
 
+    def close(self) -> None:
+
+        self._conn.close()
+
 
 class Store(Database):
 
@@ -75,9 +79,16 @@ class Pipeline(Database):
     def all_pipelines_details(self) -> list:
 
         results = self._conn.cursor().execute("""
-            SELECT name, py_name, dir_name, cron FROM pipeline
+            SELECT id, name, py_name, dir_name, cron FROM pipeline
         """)
         return results.fetchall()
+
+    def pipeline_id(self, name: str) -> int:
+
+        query = "SELECT id FROM pipeline WHERE name = ?"
+        params = (name,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()[0]
 
     def pipeline_py_name(self, name: str) -> str:
 
@@ -102,14 +113,14 @@ class Pipeline(Database):
 
     def pipeline_run_details(self) -> list:
 
-        query = "SELECT name, py_name, dir_name, cron FROM pipeline"
+        query = "SELECT id, name, py_name, dir_name, cron FROM pipeline"
         results = self._conn.cursor().execute(query)
         return results.fetchall()
 
-    def pipeline_set_cron(self, name: str, cron: str) -> None:
+    def pipeline_set_cron(self, id: int, cron: str) -> None:
 
-        query = "UPDATE pipeline SET cron = ? WHERE name = ?"
-        params = (cron, name)
+        query = "UPDATE pipeline SET cron = ? WHERE id = ?"
+        params = (cron, id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 

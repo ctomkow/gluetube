@@ -45,6 +45,9 @@ class Gluetube:
                 else:
                     logging.error(f"Is the daemon running? {e}")
                 raise SystemExit(1)
+        elif args.scan:
+            # TODO: try/except
+            command.gluetube_scan()
         elif 'DAEMON' in args:  # gluetube daemon level
             if args.foreground:
                 try:
@@ -100,6 +103,7 @@ class Gluetube:
         group.add_argument('-i', '--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
         group.add_argument('-l', '--ls', action='store_true', help='List all available pipelines')
         group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
+        group.add_argument('--scan', action='store_true', help='manually scan pipeline directory for pipelines')
 
         sub_parser = parser.add_subparsers()
         daemon = sub_parser.add_parser('daemon', description='start gluetube as a daemon process')

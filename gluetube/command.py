@@ -8,6 +8,7 @@ import util
 from gluetubed import GluetubeDaemon
 from runner import Runner
 import exceptions
+from autodiscovery import PipelineScanner
 
 # python imports
 from pathlib import Path
@@ -35,7 +36,7 @@ def gluetube_ls() -> list:
 
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
-    table.field_names = ['pipeline name', 'py file', 'directory name', 'cron schedule']
+    table.field_names = ['id', 'pipeline name', 'py file', 'directory name', 'cron schedule']
     try:
         db = Pipeline('gluetube.db')
     except exceptions.dbError:
@@ -75,6 +76,13 @@ def gluetube_dev(msg: str) -> None:
         raise
 
 
+def gluetube_scan() -> None:
+
+    # TODO: try/except
+    gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+    PipelineScanner(gt_cfg.pipeline_dir).scan()
+
+
 def daemon_fg(debug: bool) -> None:
 
     try:
@@ -93,7 +101,14 @@ def daemon_bg(debug: bool) -> None:
 
 def pipeline_cron(name: str, cron: str) -> None:
 
-    msg = _craft_rpc_msg('set_cron', [name, cron])
+    try:
+        db = Pipeline('gluetube.db')
+    except exceptions.dbError:
+        raise
+
+    pipeline_id = db.pipeline_id(name)
+
+    msg = _craft_rpc_msg('set_cron', [pipeline_id, cron])
 
     try:
         _send_rpc_msg_to_daemon(msg)

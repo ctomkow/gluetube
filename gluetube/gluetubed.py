@@ -79,6 +79,9 @@ class GluetubeDaemon:
         # initially schedule all pipelines from the database on daemon startup
         self._schedule_pipelines(self._scheduler, self._db)
 
+        # schedule the pipeline scanner for pipeline auto-discovery
+        self._schedule_auto_discovery(self._scheduler)
+
         if not self._scheduler.running:
             self._scheduler.start()
 
@@ -162,20 +165,20 @@ class GluetubeDaemon:
         for pipeline in pipelines:
 
             try:
-                cron = CronTrigger.from_crontab(pipeline[3])
+                cron = CronTrigger.from_crontab(pipeline[4])
             except ValueError as e:  # crontab validation failed
-                logging.error(f"Not scheduling pipline, {pipeline[0]}, crontab incorrect: {e}")
+                logging.error(f"Not scheduling pipline, {pipeline[1]}, crontab incorrect: {e}")
                 continue
 
             try:
-                runner = Runner(pipeline[0], pipeline[1], pipeline[2])
+                runner = Runner(pipeline[1], pipeline[2], pipeline[3])
             except exceptions.RunnerError as e:
-                logging.error(f"{e}. Not scheduling pipeline, {pipeline[0]}, runner creation failed.")
+                logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
                 continue
 
             # if pipeline job isn't scheduled at all
-            if not scheduler.get_job(pipeline[0]):
-                scheduler.add_job(runner.run, cron, id=pipeline[0])
+            if not scheduler.get_job(str(pipeline[0])):
+                scheduler.add_job(runner.run, cron, id=str(pipeline[0]))
 
     # ###############################################################################################
     # RPC methods that are called from daemon loop when msg received from unix socket
@@ -184,13 +187,13 @@ class GluetubeDaemon:
     # these methods should update scheduler AND database at the same time (if applicable)
     # therefore, all RPC methods should include the scheduler and db keyword arguments
 
-    def set_cron(self, pipeline_name: str, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+    def set_cron(self, pipeline_id: int, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
         try:
-            scheduler.modify_job(pipeline_name, trigger=CronTrigger.from_crontab(crontab))
+            scheduler.modify_job(str(pipeline_id), trigger=CronTrigger.from_crontab(crontab))
         except JobLookupError as e:
             raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
         try:
-            db.pipeline_set_cron(pipeline_name, crontab)
+            db.pipeline_set_cron(pipeline_id, crontab)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
