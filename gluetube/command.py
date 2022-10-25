@@ -12,9 +12,7 @@ from autodiscovery import PipelineScanner
 
 # python imports
 from pathlib import Path
-import socket
 import struct
-import json
 
 # 3rd party imports
 from prettytable import PrettyTable
@@ -71,7 +69,7 @@ def gluetube_dev(msg: str) -> None:
     msg_bytes = str.encode(msg)
     msg = struct.pack('>I', len(msg_bytes)) + msg_bytes
     try:
-        _send_rpc_msg_to_daemon(msg)
+        util.send_rpc_msg_to_daemon(msg)
     except exceptions.rpcError:
         raise
 
@@ -108,39 +106,9 @@ def pipeline_cron(name: str, cron: str) -> None:
 
     pipeline_id = db.pipeline_id_from_name(name)
 
-    msg = _craft_rpc_msg('set_cron', [pipeline_id, cron])
+    msg = util.craft_rpc_msg('set_cron', [pipeline_id, cron])
 
     try:
-        _send_rpc_msg_to_daemon(msg)
+        util.send_rpc_msg_to_daemon(msg)
     except exceptions.rpcError:
         raise
-
-# helper functions
-
-
-# TODO: move this to the utils module
-def _craft_rpc_msg(func: str, params: list) -> bytes:
-
-    msg_dict = {'function': func, 'parameters': params}
-    msg_str = json.dumps(msg_dict)
-    msg_bytes = str.encode(msg_str)
-    return struct.pack('>I', len(msg_bytes)) + msg_bytes
-
-
-# TODO: move this to the utils module
-def _send_rpc_msg_to_daemon(msg: bytes) -> None:
-
-    try:
-        gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-    except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
-        raise exceptions.rpcError(f"RPC call failed. {e}") from e
-
-    server_address = gt_cfg.socket_file
-    if not Path(gt_cfg.socket_file).exists():
-        raise exceptions.rpcError(f"Unix domain socket, {gt_cfg.socket_file}, not found")
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        sock.connect(server_address)
-        sock.sendall(msg)
-    except ConnectionRefusedError as e:
-        raise exceptions.rpcError(f"RPC call failed. {e}") from e
