@@ -4,15 +4,11 @@
 # local imports
 from db import Pipeline
 import exceptions
-import config
 import util
 
 # python imports
 from pathlib import Path
 import re
-import struct
-import json
-import socket
 
 
 # TODO: error handling
