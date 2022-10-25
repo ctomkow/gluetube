@@ -83,10 +83,17 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline_id(self, name: str) -> int:
+    def pipeline_id_from_name(self, name: str) -> int:
 
         query = "SELECT id FROM pipeline WHERE name = ?"
         params = (name,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()[0]
+
+    def pipeline_id_from_tuple(self, py_name: str, dir_name: str) -> int:
+
+        query = "SELECT id FROM pipeline WHERE py_name = ? AND dir_name = ?"
+        params = (py_name, dir_name)
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()[0]
 
@@ -128,5 +135,19 @@ class Pipeline(Database):
 
         query = "UPDATE pipeline SET py_name = ? WHERE name = ?"
         params = (py_name, name)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def pipeline_insert(self, name: str, py_name: str, dir_name: str, cron: str) -> None:
+
+        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?)"
+        params = (name, py_name, dir_name, cron)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def pipeline_delete(self, id: int) -> None:
+
+        query = "DELETE FROM pipeline WHERE rowid = ?"
+        params = (id,)
         self._conn.cursor().execute(query, params)
         self._conn.commit()

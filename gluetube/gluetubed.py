@@ -9,6 +9,7 @@ from runner import Runner
 import config
 import util
 import exceptions
+from autodiscovery import PipelineScanner
 
 # python imports
 import socket
@@ -17,12 +18,16 @@ import struct
 import json
 from json.decoder import JSONDecodeError
 import os
+from datetime import datetime
 
 # 3rd party imports
 import daemon
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.jobstores.base import JobLookupError
+from apscheduler.schedulers.base import ConflictingIdError
 
 
 class GluetubeDaemon:
@@ -159,16 +164,16 @@ class GluetubeDaemon:
             data.extend(packet)
         return data
 
-    def _schedule_pipelines(self, scheduler: BackgroundScheduler, db: Pipeline):
+    def _schedule_pipelines(self, scheduler: BackgroundScheduler, db: Pipeline) -> None:
 
         pipelines = db.pipeline_run_details()
         for pipeline in pipelines:
 
+            cron = None
             try:
                 cron = CronTrigger.from_crontab(pipeline[4])
             except ValueError as e:  # crontab validation failed
-                logging.error(f"Not scheduling pipline, {pipeline[1]}, crontab incorrect: {e}")
-                continue
+                logging.error(f"Pipeline, {pipeline[1]}, will not run!. crontab incorrect: {pipeline[4]}. {e}")
 
             try:
                 runner = Runner(pipeline[1], pipeline[2], pipeline[3])
@@ -178,7 +183,25 @@ class GluetubeDaemon:
 
             # if pipeline job isn't scheduled at all
             if not scheduler.get_job(str(pipeline[0])):
-                scheduler.add_job(runner.run, cron, id=str(pipeline[0]))
+                if cron:
+                    scheduler.add_job(runner.run, cron, id=str(pipeline[0]))
+                else:
+                    scheduler.add_job(runner.run, trigger=DateTrigger(datetime(2999, 1, 1)), id=str(pipeline[0]))
+
+    def _schedule_auto_discovery(self, scheduler: BackgroundScheduler) -> None:
+
+        try:
+            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+        except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
+            raise exceptions.DaemonError(f"Failed to schedule auto-discovery. {e}") from e
+
+        interval = IntervalTrigger(seconds=int(gt_cfg.pipeline_scan_interval))
+
+        pipeline_scanner = PipelineScanner(gt_cfg.pipeline_dir)
+
+        # if pipeline scanner job isn't scheduled at all
+        if not scheduler.get_job('pipeline_scanner'):
+            scheduler.add_job(pipeline_scanner.scan, interval, id='pipeline_scanner')
 
     # ###############################################################################################
     # RPC methods that are called from daemon loop when msg received from unix socket
@@ -197,3 +220,46 @@ class GluetubeDaemon:
             db.pipeline_set_cron(pipeline_id, crontab)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+    # auto-discovery calls this whenever a new pipeline.py AND pipeline_directory unique tuple is found
+    def set_pipeline(self, name: str, py_name: str, dir_name: str, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_insert(name, py_name, dir_name, crontab)
+            logging.info(f"Pipeline, {name}, added to database.")
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+        try:
+            pipeline_id = db.pipeline_id_from_tuple(py_name, dir_name)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to get id from database. {e}") from e
+
+        try:
+            runner = Runner(name, py_name, dir_name)
+        except exceptions.RunnerError as e:
+            raise exceptions.DaemonError(f"{e}. Not scheduling pipeline, {name}, runner creation failed.") from e
+
+        try:
+            if crontab:
+                scheduler.add_job(runner.run, trigger=CronTrigger.from_crontab(crontab), id=str(pipeline_id))
+            else:  # job runs if no trigger is specified. So, I set a dummy date trigger for now to avoid job run
+                scheduler.add_job(runner.run, trigger=DateTrigger(datetime(2999, 1, 1)), id=str(pipeline_id))
+        except ConflictingIdError as e:
+            # rollback database insert
+            db.pipeline_delete(pipeline_id)
+            raise exceptions.DaemonError(f"Failed to add pipeline schedule. {e}") from e
+
+    # auto-discovery calls this whenever a pipeline.py AND pipeline_directory unique tuple disappears
+    def delete_pipeline(self, pipeline_id: int, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            scheduler.remove_job(str(pipeline_id))
+        except JobLookupError as e:
+            raise exceptions.DaemonError(f"Failed to delete pipeline schedule. {e}") from e
+
+        try:
+            db.pipeline_delete(pipeline_id)
+            logging.info(f"Deleted pipeline id {pipeline_id} from the database.")
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to delete pipeline from database. {e}") from e

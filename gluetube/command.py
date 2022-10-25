@@ -106,7 +106,7 @@ def pipeline_cron(name: str, cron: str) -> None:
     except exceptions.dbError:
         raise
 
-    pipeline_id = db.pipeline_id(name)
+    pipeline_id = db.pipeline_id_from_name(name)
 
     msg = _craft_rpc_msg('set_cron', [pipeline_id, cron])
 
@@ -118,6 +118,7 @@ def pipeline_cron(name: str, cron: str) -> None:
 # helper functions
 
 
+# TODO: move this to the utils module
 def _craft_rpc_msg(func: str, params: list) -> bytes:
 
     msg_dict = {'function': func, 'parameters': params}
@@ -126,6 +127,7 @@ def _craft_rpc_msg(func: str, params: list) -> bytes:
     return struct.pack('>I', len(msg_bytes)) + msg_bytes
 
 
+# TODO: move this to the utils module
 def _send_rpc_msg_to_daemon(msg: bytes) -> None:
 
     try:

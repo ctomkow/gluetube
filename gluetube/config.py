@@ -40,6 +40,7 @@ class Gluetube(Parser):
 
         try:
             self.pipeline_dir = self.config['gluetube']['PIPELINE_DIR']
+            self.pipeline_scan_interval = self.config['gluetube']['PIPELINE_SCAN_INTERVAL']
             self.database_dir = self.config['gluetube']['DATABASE_DIR']
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
