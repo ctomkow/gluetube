@@ -9,7 +9,7 @@ import exceptions
 # python imports
 import logging
 import subprocess
-from subprocess import CalledProcessError
+from subprocess import STDOUT, CalledProcessError
 import sys
 import os
 from venv import EnvBuilder
@@ -18,7 +18,7 @@ from pathlib import Path
 
 class Runner:
 
-    def __init__(self, pipeline_name: str, py_file_name: str, pipeline_dir_name: str) -> None:
+    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str) -> None:
 
         try:
             gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
@@ -26,6 +26,7 @@ class Runner:
             raise exceptions.RunnerError(f"Failed to initialize runner. {e}") from e
 
         self.base_dir = gt_cfg.pipeline_dir
+        self.p_id = pipeline_id
         self.p_name = pipeline_name
         self.py_file = py_file_name
         self.p_dir = pipeline_dir_name
@@ -35,7 +36,6 @@ class Runner:
         # TODO: set pipeline status='running', an sqlite3 cal
 
         dir_abs_path = f"{self.base_dir}/{self.p_dir}"
-        py_abs_path = f"{dir_abs_path}/{self.py_file}"
 
         if not _venv_exists(f"{dir_abs_path}/.venv"):
             _create_venv(dir_abs_path)
@@ -46,14 +46,23 @@ class Runner:
         if _requirements_exists(f"{dir_abs_path}/requirements.txt"):
             _install_pipeline_requirements(dir_abs_path)
 
+        # modified environment variables of pipeline for gluetube system
+        gluetube_env_vars = os.environ.copy()
+        gluetube_env_vars['PIPELINE_ID'] = str(self.p_id)
+
+        logging.info(f"Pipeline: {self.p_name}, started.")
+
         try:
-            subprocess.check_output([f"{dir_abs_path}/.venv/bin/python", py_abs_path])
+            # TODO: for DEV pipeline mode, print to logging, for normal operation, silence it.
+            # for line in subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars).split('\n'):
+            #     print(line)
+            subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars)
         except CalledProcessError:
             # TODO: set pipeline status='crashed', an sqlite3 call
             raise
 
         # TODO: set pipeline status='completed', an sqlite3 call
-        logging.info(f"Pipeline: {self.p_name} completed.")
+        logging.info(f"Pipeline: {self.p_name}, completed.")
 
 # helper functions
 
@@ -90,6 +99,6 @@ def _symlink_gluetube_to_venv(venv_dir: str) -> None:
 def _install_pipeline_requirements(dir: str) -> None:
 
     try:
-        subprocess.check_output([f"{dir}/.venv/bin/pip", 'install', '-r', f"{dir}/requirements.txt"])
+        subprocess.check_output(['.venv/bin/pip', 'install', '-r', 'requirements.txt'], cwd=dir)
     except CalledProcessError:
         raise

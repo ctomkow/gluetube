@@ -25,7 +25,7 @@ def conf_dir() -> list:
     return [
         './',
         'cfg/',
-        '~/.gluetube/cfg/',
+        f'{Path.home()}/.gluetube/etc/',
         '/usr/local/etc/gluetube/',
         '/etc/opt/gluetube/',
         '/etc/gluetube/'

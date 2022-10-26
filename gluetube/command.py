@@ -34,7 +34,7 @@ def gluetube_ls() -> list:
 
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
-    table.field_names = ['id', 'pipeline name', 'py file', 'directory name', 'cron schedule']
+    table.field_names = ['id', 'pipeline name', 'py file', 'directory', 'cron', 'paused', 'status', 'stage', 'message']
     try:
         db = Pipeline('gluetube.db')
     except exceptions.dbError:
@@ -53,11 +53,12 @@ def pipeline_run(name: str) -> None:
     except exceptions.dbError:
         raise
 
+    pipeline_id = db.pipeline_id_from_name(name)
     pipeline_py = db.pipeline_py_name(name)
     pipeline_dir = db.pipeline_dir_name(name)
-
+    # TODO: also need to inject custom gluetube env vars into instance
     try:
-        runner = Runner(name, pipeline_py, pipeline_dir)
+        runner = Runner(pipeline_id, name, pipeline_py, pipeline_dir)
     except exceptions.RunnerError:
         raise
 

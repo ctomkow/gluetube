@@ -8,6 +8,8 @@ import gluetube
 from setuptools import setup, find_namespace_packages
 import os
 
+# TODO: add CustomInstall(install) for copying .cfg file into .gluetube/etc/
+
 # read from the VERSION file
 with open(os.path.join(os.path.dirname(gluetube.__file__), 'VERSION')) as version_file:
     version = version_file.read().strip()

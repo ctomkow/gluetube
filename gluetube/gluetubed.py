@@ -178,7 +178,7 @@ class GluetubeDaemon:
                 logging.error(f"Pipeline, {pipeline[1]}, will not run!. crontab incorrect: {pipeline[4]}. {e}")
 
             try:
-                runner = Runner(pipeline[1], pipeline[2], pipeline[3])
+                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
             except exceptions.RunnerError as e:
                 logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
                 continue
@@ -238,7 +238,7 @@ class GluetubeDaemon:
             raise exceptions.DaemonError(f"Failed to get id from database. {e}") from e
 
         try:
-            runner = Runner(name, py_name, dir_name)
+            runner = Runner(pipeline_id, name, py_name, dir_name)
         except exceptions.RunnerError as e:
             raise exceptions.DaemonError(f"{e}. Not scheduling pipeline, {name}, runner creation failed.") from e
 
@@ -265,3 +265,19 @@ class GluetubeDaemon:
             logging.info(f"Deleted pipeline id {pipeline_id} from the database.")
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to delete pipeline from database. {e}") from e
+
+    # pipeline.py calls this to update the status it's in
+    def set_status(self, pipeline_id: int, status: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_set_status(pipeline_id, status)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+    # pipeline.py calls this to update the stage it's in
+    def set_stage(self, pipeline_id: int, stage: int, msg: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_set_stage(pipeline_id, stage, msg)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
