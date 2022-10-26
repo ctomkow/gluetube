@@ -90,6 +90,8 @@ class GluetubeDaemon:
         if not self._scheduler.running:
             self._scheduler.start()
 
+        logging.getLogger('apscheduler').setLevel('WARNING')
+
         self._main(self._scheduler, self._db, self._sock, self._debug)
 
     ####################################### DAEMON LOOP #######################################
@@ -212,7 +214,7 @@ class GluetubeDaemon:
 
     def set_cron(self, pipeline_id: int, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
         try:
-            scheduler.modify_job(str(pipeline_id), trigger=CronTrigger.from_crontab(crontab))
+            scheduler.reschedule_job(str(pipeline_id), trigger=CronTrigger.from_crontab(crontab))
         except JobLookupError as e:
             raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
