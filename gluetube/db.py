@@ -59,6 +59,8 @@ class Pipeline(Database):
 
     def create_schema(self) -> None:
         # TODO: should all this be in the same table???
+
+        # TODO: add a timestamp to table, to confirm start time and finish time
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline(
                 id INTEGER PRIMARY KEY,
