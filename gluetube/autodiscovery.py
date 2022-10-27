@@ -107,7 +107,7 @@ class PipelineScanner:
         except exceptions.dbError:
             raise
 
-        pipelines = db.ls_pipelines_details()
+        pipelines = db.all_pipelines()
         db.close()
 
         return pipelines

@@ -168,7 +168,7 @@ class GluetubeDaemon:
 
     def _schedule_pipelines(self, scheduler: BackgroundScheduler, db: Pipeline) -> None:
 
-        pipelines = db.pipeline_run_details()
+        pipelines = db.all_pipelines()
         for pipeline in pipelines:
 
             cron = None
@@ -211,17 +211,6 @@ class GluetubeDaemon:
     # RPC methods should be writing to the database and interacting with the schedule (if applicable)
     # these methods should update scheduler AND database at the same time (if applicable)
     # therefore, all RPC methods should include the scheduler and db keyword arguments
-
-    def set_cron(self, pipeline_id: int, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
-        try:
-            scheduler.reschedule_job(str(pipeline_id), trigger=CronTrigger.from_crontab(crontab))
-        except JobLookupError as e:
-            raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
-
-        try:
-            db.pipeline_set_cron(pipeline_id, crontab)
-        except sqlite3.Error as e:
-            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
     # auto-discovery calls this whenever a new pipeline.py AND pipeline_directory unique tuple is found
     def set_pipeline(self, name: str, py_name: str, dir_name: str, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
@@ -266,26 +255,44 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to delete pipeline from database. {e}") from e
 
-    # pipeline.py calls this to update the status it's in
-    def set_status(self, pipeline_id: int, status: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+    def set_cron(self, pipeline_id: int, crontab: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+        try:
+            scheduler.reschedule_job(str(pipeline_id), trigger=CronTrigger.from_crontab(crontab))
+        except JobLookupError as e:
+            raise exceptions.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
         try:
-            db.pipeline_set_status(pipeline_id, status)
+            db.pipeline_set_cron(pipeline_id, crontab)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+    def set_pipeline_run(self, pipeline_id: int, status: str, start_time: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_run_insert(pipeline_id, status, start_time)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
     # pipeline.py calls this to update the stage it's in
-    def set_stage(self, pipeline_id: int, stage: int, msg: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+    def set_pipeline_run_stage(self, pipeline_run_id: int, stage: int, msg: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:
-            db.pipeline_set_stage(pipeline_id, stage, msg)
+            db.pipeline_run_set_stage_and_msg(pipeline_run_id, stage, msg)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
-    # pipeline.py calls this to update the stacktrace when pipeline crashes
-    def set_stacktrace(self, pipeline_id: int, stacktrace: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+    # pipeline.py calls this to update the status it's in
+    def set_pipeline_run_status(self, pipeline_run_id: int, status: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:
-            db.pipeline_set_stacktrace(pipeline_id, stacktrace)
+            db.pipeline_run_set_status(pipeline_run_id, status)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+    # runner.py calls this to update the pipeline run when it's done
+    def set_pipeline_run_finished(self, pipeline_run_id: int, status: str, msg: str, end_time: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_run_set_finished(pipeline_run_id, status, msg, end_time)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e

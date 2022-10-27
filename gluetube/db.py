@@ -58,7 +58,6 @@ class Store(Database):
 class Pipeline(Database):
 
     def create_schema(self) -> None:
-        # TODO: should all this be in the same table???
 
         # TODO: add a timestamp to table, to confirm start time and finish time
         self._conn.cursor().execute("""
@@ -68,23 +67,46 @@ class Pipeline(Database):
                 py_name TEXT,
                 dir_name TEXT,
                 cron TEXT,
-                paused TEXT,
-                status TEXT,
-                stage INTEGER,
-                msg TEXT,
-                stacktrace TEXT
+                paused TEXT
             )""")
         self._conn.commit()
 
-    def pipeline_details(self, name: str) -> list:
+        self._conn.cursor().execute("""
+            CREATE TABLE IF NOT EXISTS pipeline_run(
+                id INTEGER PRIMARY KEY,
+                pipeline_id INTEGER,
+                status TEXT,
+                stage INTEGER,
+                stage_msg TEXT,
+                exit_msg TEXT,
+                start_time TEXT,
+                end_time TEXT,
+                FOREIGN KEY(pipeline_id) REFERENCES pipeline(id)
+            )""")
+        self._conn.commit()
 
-        query = "SELECT name, py_name, dir_name, cron FROM pipeline WHERE name = ?"
-        params = (name,)
-        results = self._conn.cursor().execute(query, params)
-        return results.fetchone()
+    def pipeline_insert(self, name: str, py_name: str, dir_name: str, cron: str) -> None:
 
-    def ls_pipelines_details(self) -> list:
+        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE)"
+        params = (name, py_name, dir_name, cron)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
 
+    def pipeline_delete(self, id: int) -> None:
+
+        query = "DELETE FROM pipeline WHERE rowid = ?"
+        params = (id,)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def all_pipelines(self) -> list:
+
+        query = "SELECT id, name, py_name, dir_name, cron, paused FROM pipeline"
+        results = self._conn.cursor().execute(query)
+        return results.fetchall()
+
+    def ls_pipelines(self) -> list:
+        # TODO: re-work this with a UNION
         results = self._conn.cursor().execute("""
             SELECT id, name, py_name, dir_name, cron, paused, status, stage, msg FROM pipeline
         """)
@@ -104,32 +126,26 @@ class Pipeline(Database):
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()[0]
 
-    def pipeline_py_name(self, name: str) -> str:
+    def pipeline_py_from_name(self, name: str) -> str:
 
         query = "SELECT py_name FROM pipeline WHERE name = ?"
         params = (name,)
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()[0]
 
-    def pipeline_dir_name(self, pipeline_name: str) -> str:
+    def pipeline_dir_from_name(self, pipeline_name: str) -> str:
 
         query = "SELECT dir_name FROM pipeline WHERE name = ?"
         params = (pipeline_name,)
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()[0]
 
-    def pipeline_cron(self, pipeline_name: str) -> str:
+    def pipeline_cron_from_name(self, pipeline_name: str) -> str:
 
         query = "SELECT cron FROM pipeline WHERE name = ?"
         params = (pipeline_name,)
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()[0]
-
-    def pipeline_run_details(self) -> list:
-
-        query = "SELECT id, name, py_name, dir_name, cron FROM pipeline"
-        results = self._conn.cursor().execute(query)
-        return results.fetchall()
 
     def pipeline_set_cron(self, id: int, cron: str) -> None:
 
@@ -145,37 +161,37 @@ class Pipeline(Database):
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def pipeline_set_stage(self, id: int, stage: int, msg: str) -> None:
+    def pipeline_run_insert(self, pipeline_id: int, status: str, start_time: str) -> None:
 
-        query = "UPDATE pipeline SET stage = ?, msg = ? WHERE id = ?"
+        query = "INSERT INTO pipeline_run VALUES (NULL, ?, ?, NULL, NULL, NULL, ?, NULL)"
+        params = (pipeline_id, status, start_time)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def pipeline_run_id_by_pipeline_id_and_start_time(self, pipeline_id: int, start_time: str) -> int:
+
+        query = "SELECT id FROM pipeline_run WHERE pipeline_id = ? AND start_time = ?"
+        params = (pipeline_id, start_time)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()[0]
+
+    def pipeline_run_set_stage_and_msg(self, id: int, stage: int, msg: str) -> None:
+
+        query = "UPDATE pipeline_run SET stage = ?, stage_msg = ? WHERE id = ?"
         params = (stage, msg, id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def pipeline_set_status(self, id: int, status: str) -> None:
+    def pipeline_run_set_status(self, id: int, status: str) -> None:
 
-        query = "UPDATE pipeline SET status = ? WHERE id = ?"
+        query = "UPDATE pipeline_run SET status = ? WHERE id = ?"
         params = (status, id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def pipeline_set_stacktrace(self, id: int, stacktrace: str) -> None:
+    def pipeline_run_set_finished(self, id: int, status: str, msg: str, end_time: str) -> None:
 
-        query = "UPDATE pipeline SET stacktrace = ? WHERE id = ?"
-        params = (stacktrace, id)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
-
-    def pipeline_insert(self, name: str, py_name: str, dir_name: str, cron: str) -> None:
-
-        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE, NULL, NULL, NULL, NULL)"
-        params = (name, py_name, dir_name, cron)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
-
-    def pipeline_delete(self, id: int) -> None:
-
-        query = "DELETE FROM pipeline WHERE rowid = ?"
-        params = (id,)
+        query = "UPDATE pipeline_run SET status = ?, exit_msg = ?, end_time = ? WHERE id = ?"
+        params = (status, msg, end_time, id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()

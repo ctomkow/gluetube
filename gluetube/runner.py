@@ -5,6 +5,7 @@
 import config
 import util
 import exceptions
+from db import Pipeline
 
 # python imports
 import logging
@@ -14,6 +15,8 @@ import sys
 import os
 from venv import EnvBuilder
 from pathlib import Path
+from datetime import datetime
+from time import sleep
 
 
 class Runner:
@@ -44,12 +47,19 @@ class Runner:
         if _requirements_exists(f"{dir_abs_path}/requirements.txt"):
             _install_pipeline_requirements(dir_abs_path)
 
+        # ### THE 'START' of the pipeline ###
+        start_time = datetime.now().isoformat()
+        logging.info(f"Pipeline: {self.p_name}, started.")
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]))
+
+        db = Pipeline('gluetube.db')
+        pipeline_run_id = db.pipeline_run_id_by_pipeline_id_and_start_time(self.p_id, start_time)
+
+        sleep(1)  # avoid race condition on db lookup, a hack i know
+
         # modified environment variables of pipeline for gluetube system
         gluetube_env_vars = os.environ.copy()
-        gluetube_env_vars['PIPELINE_ID'] = str(self.p_id)
-
-        logging.info(f"Pipeline: {self.p_name}, started.")
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_status', [self.p_id, 'running']))
+        gluetube_env_vars['PIPELINE_RUN_ID'] = str(pipeline_run_id)
 
         try:
             # TODO: for DEV pipeline mode, print to logging, for normal operation, silence it.
@@ -57,12 +67,10 @@ class Runner:
             #     print(line)
             subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars)
         except CalledProcessError as e:
-            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_status', [self.p_id, 'crashed']))
-            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_stacktrace', [self.p_id, e.output]))
+            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run_finished', [pipeline_run_id, 'crashed', e.output, datetime.now().isoformat()]))
             raise
 
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_status', [self.p_id, 'finished']))
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_stacktrace', [self.p_id, '']))
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run_finished', [pipeline_run_id, 'finished', '', datetime.now().isoformat()]))
         logging.info(f"Pipeline: {self.p_name}, finished successfully.")
 
 # helper functions
