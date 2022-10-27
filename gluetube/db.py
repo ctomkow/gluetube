@@ -85,8 +85,19 @@ class Pipeline(Database):
             )""")
         self._conn.commit()
 
+        # pre-optimization, i know i know
         self._conn.cursor().execute("""
             CREATE INDEX pipeline_id_index ON pipeline_run (pipeline_id)
+            """)
+        self._conn.commit()
+
+        self._conn.cursor().execute("""
+            CREATE INDEX stage_index ON pipeline_run (stage)
+            """)
+        self._conn.commit()
+
+        self._conn.cursor().execute("""
+            CREATE INDEX start_time_index ON pipeline_run (start_time)
             """)
         self._conn.commit()
 
