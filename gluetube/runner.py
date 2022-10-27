@@ -15,7 +15,7 @@ import sys
 import os
 from venv import EnvBuilder
 from pathlib import Path
-from datetime import datetime
+import datetime
 from time import sleep
 
 
@@ -48,7 +48,7 @@ class Runner:
             _install_pipeline_requirements(dir_abs_path)
 
         # ### THE 'START' of the pipeline ###
-        start_time = datetime.now().isoformat()
+        start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         logging.info(f"Pipeline: {self.p_name}, started.")
         util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]))
 
@@ -67,10 +67,20 @@ class Runner:
             #     print(line)
             subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars)
         except CalledProcessError as e:
-            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run_finished', [pipeline_run_id, 'crashed', e.output, datetime.now().isoformat()]))
+            util.send_rpc_msg_to_daemon(
+                util.craft_rpc_msg(
+                    'set_pipeline_run_finished',
+                    [pipeline_run_id, 'crashed', e.output, datetime.datetime.now(datetime.timezone.utc).isoformat()]
+                )
+            )
             raise
 
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run_finished', [pipeline_run_id, 'finished', '', datetime.now().isoformat()]))
+        util.send_rpc_msg_to_daemon(
+            util.craft_rpc_msg(
+                'set_pipeline_run_finished',
+                [pipeline_run_id, 'finished', '', datetime.datetime.now(datetime.timezone.utc).isoformat()]
+            )
+        )
         logging.info(f"Pipeline: {self.p_name}, finished successfully.")
 
 # helper functions
