@@ -58,7 +58,7 @@ class Store(Database):
 class Pipeline(Database):
 
     def create_schema(self) -> None:
-
+        # TODO: should all this be in the same table???
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline(
                 id INTEGER PRIMARY KEY,
@@ -69,7 +69,8 @@ class Pipeline(Database):
                 paused TEXT,
                 status TEXT,
                 stage INTEGER,
-                msg TEXT
+                msg TEXT,
+                stacktrace TEXT
             )""")
         self._conn.commit()
 
@@ -80,7 +81,7 @@ class Pipeline(Database):
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()
 
-    def all_pipelines_details(self) -> list:
+    def ls_pipelines_details(self) -> list:
 
         results = self._conn.cursor().execute("""
             SELECT id, name, py_name, dir_name, cron, paused, status, stage, msg FROM pipeline
@@ -156,9 +157,16 @@ class Pipeline(Database):
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
+    def pipeline_set_stacktrace(self, id: int, stacktrace: str) -> None:
+
+        query = "UPDATE pipeline SET stacktrace = ? WHERE id = ?"
+        params = (stacktrace, id)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
     def pipeline_insert(self, name: str, py_name: str, dir_name: str, cron: str) -> None:
 
-        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE, NULL, NULL, NULL)"
+        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE, NULL, NULL, NULL, NULL)"
         params = (name, py_name, dir_name, cron)
         self._conn.cursor().execute(query, params)
         self._conn.commit()

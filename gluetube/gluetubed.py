@@ -281,3 +281,11 @@ class GluetubeDaemon:
             db.pipeline_set_stage(pipeline_id, stage, msg)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+    # pipeline.py calls this to update the stacktrace when pipeline crashes
+    def set_stacktrace(self, pipeline_id: int, stacktrace: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_set_stacktrace(pipeline_id, stacktrace)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e

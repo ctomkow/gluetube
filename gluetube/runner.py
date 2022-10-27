@@ -33,8 +33,6 @@ class Runner:
 
     def run(self) -> None:
 
-        # TODO: set pipeline status='running', an sqlite3 cal
-
         dir_abs_path = f"{self.base_dir}/{self.p_dir}"
 
         if not _venv_exists(f"{dir_abs_path}/.venv"):
@@ -51,18 +49,21 @@ class Runner:
         gluetube_env_vars['PIPELINE_ID'] = str(self.p_id)
 
         logging.info(f"Pipeline: {self.p_name}, started.")
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_status', [self.p_id, 'running']))
 
         try:
             # TODO: for DEV pipeline mode, print to logging, for normal operation, silence it.
             # for line in subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars).split('\n'):
             #     print(line)
             subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars)
-        except CalledProcessError:
-            # TODO: set pipeline status='crashed', an sqlite3 call
+        except CalledProcessError as e:
+            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_status', [self.p_id, 'crashed']))
+            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_stacktrace', [self.p_id, e.output]))
             raise
 
-        # TODO: set pipeline status='completed', an sqlite3 call
-        logging.info(f"Pipeline: {self.p_name}, completed.")
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_status', [self.p_id, 'finished']))
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_stacktrace', [self.p_id, '']))
+        logging.info(f"Pipeline: {self.p_name}, finished successfully.")
 
 # helper functions
 
