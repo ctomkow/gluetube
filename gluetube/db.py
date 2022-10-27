@@ -85,6 +85,11 @@ class Pipeline(Database):
             )""")
         self._conn.commit()
 
+        self._conn.cursor().execute("""
+            CREATE INDEX pipeline_id_index ON pipeline_run (pipeline_id)
+            """)
+        self._conn.commit()
+
     def pipeline_insert(self, name: str, py_name: str, dir_name: str, cron: str) -> None:
 
         query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE)"
