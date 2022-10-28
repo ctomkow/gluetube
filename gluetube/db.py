@@ -124,7 +124,7 @@ class Pipeline(Database):
         return results.fetchall()
 
     def ls_pipelines(self) -> list:
-        # TODO: finish this
+
         results = self._conn.cursor().execute("""
             SELECT pipeline.name, pipeline.cron, pipeline.paused, pipeline_run.status, pipeline_run.stage_msg, pipeline_run.end_time
             FROM pipeline
