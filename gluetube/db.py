@@ -60,7 +60,6 @@ class Pipeline(Database):
 
     def create_schema(self) -> None:
 
-        # TODO: add a timestamp to table, to confirm start time and finish time
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline(
                 id INTEGER PRIMARY KEY,
