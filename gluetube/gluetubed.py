@@ -66,7 +66,12 @@ class GluetubeDaemon:
         except exceptions.dbError as e:
             raise exceptions.DaemonError(f"Failed to start daemon. {e}") from e
 
-        self._scheduler = BackgroundScheduler()
+        self._scheduler = BackgroundScheduler(
+            {
+                'apscheduler.executors.default':
+                {'class': 'apscheduler.executors.pool:ThreadPoolExecutor', 'max_workers': '101'}
+            }
+        )
 
         try:
             gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
