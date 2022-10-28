@@ -17,6 +17,6 @@ RUN pip install -r requirements-dev.txt --user
 
 COPY ./gluetube /home/gluetube/.local/lib/python3.10/site-packages/gluetube
 
-RUN mkdir -p .gluetube/cfg && mkdir -p .gluetube/pipelines && mkdir -p .gluetube/db
+RUN mkdir -p .gluetube/etc && mkdir -p .gluetube/pipelines && mkdir -p .gluetube/db
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]
