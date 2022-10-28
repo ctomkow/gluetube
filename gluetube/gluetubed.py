@@ -266,6 +266,13 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
+    def set_current_run(self, pipeline_id: int, pipeline_run_id: int, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+
+        try:
+            db.pipeline_set_current_run(pipeline_id, pipeline_run_id)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
     def set_pipeline_run(self, pipeline_id: int, status: str, start_time: str, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:

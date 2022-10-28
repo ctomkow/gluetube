@@ -48,19 +48,24 @@ class Runner:
             _install_pipeline_requirements(dir_abs_path)
 
         # ### THE 'START' of the pipeline ###
+
+        # get current time and create a new db entry for current run
         start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         logging.info(f"Pipeline: {self.p_name}, started.")
         util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]))
 
+        sleep(1)  # avoid race condition on db lookup, a hack i know
+
+        # get pipeline_run_id, also set the current_run of pipeline to the pipeline_run_id
         db = Pipeline('gluetube.db')
         pipeline_run_id = db.pipeline_run_id_by_pipeline_id_and_start_time(self.p_id, start_time)
-
-        sleep(1)  # avoid race condition on db lookup, a hack i know
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_current_run', [self.p_id, pipeline_run_id]))
 
         # modified environment variables of pipeline for gluetube system
         gluetube_env_vars = os.environ.copy()
         gluetube_env_vars['PIPELINE_RUN_ID'] = str(pipeline_run_id)
 
+        # Finally, actually fork the pipeline process
         try:
             # TODO: for DEV pipeline mode, print to logging, for normal operation, silence it.
             # for line in subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars).split('\n'):

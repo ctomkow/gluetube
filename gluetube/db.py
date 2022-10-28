@@ -24,6 +24,7 @@ class Database:
             self._conn = sqlite3.connect(f"file:{gt_cfg.database_dir}/{db_name}?mode=ro", uri=True)
         else:
             self._conn = sqlite3.connect(f"{gt_cfg.database_dir}/{db_name}")
+            self._conn.execute('pragma journal_mode=wal;')
 
     def close(self) -> None:
 
@@ -67,7 +68,8 @@ class Pipeline(Database):
                 py_name TEXT,
                 dir_name TEXT,
                 cron TEXT,
-                paused TEXT
+                paused TEXT,
+                current_run INTEGER
             )""")
         self._conn.commit()
 
@@ -103,7 +105,7 @@ class Pipeline(Database):
 
     def pipeline_insert(self, name: str, py_name: str, dir_name: str, cron: str) -> None:
 
-        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE)"
+        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, FALSE, NULL)"
         params = (name, py_name, dir_name, cron)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
@@ -117,14 +119,17 @@ class Pipeline(Database):
 
     def all_pipelines(self) -> list:
 
-        query = "SELECT id, name, py_name, dir_name, cron, paused FROM pipeline"
+        query = "SELECT id, name, py_name, dir_name, cron, paused, current_run FROM pipeline"
         results = self._conn.cursor().execute(query)
         return results.fetchall()
 
     def ls_pipelines(self) -> list:
-        # TODO: re-work this with a UNION
+        # TODO: finish this
         results = self._conn.cursor().execute("""
-            SELECT id, name, py_name, dir_name, cron, paused, status, stage, msg FROM pipeline
+            SELECT pipeline.name, pipeline.cron, pipeline.paused, pipeline_run.status, pipeline_run.stage_msg, pipeline_run.end_time
+            FROM pipeline
+            LEFT JOIN pipeline_run
+            ON pipeline.id = pipeline_run.pipeline_id AND pipeline.current_run = pipeline_run.id;
         """)
         return results.fetchall()
 
@@ -174,6 +179,13 @@ class Pipeline(Database):
 
         query = "UPDATE pipeline SET py_name = ? WHERE name = ?"
         params = (py_name, name)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def pipeline_set_current_run(self, pipeline_id: int, pipeline_run_id: int) -> None:
+
+        query = "UPDATE pipeline SET current_run = ? WHERE id = ?"
+        params = (pipeline_run_id, pipeline_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 

@@ -33,10 +33,10 @@ def gluetube_init() -> None:
 
 
 def gluetube_ls() -> list:
-    # TODO: how to display the gnary stacktrace db column to the user in a sane way???
+
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
-    table.field_names = ['id', 'pipeline name', 'py file', 'directory', 'cron', 'paused', 'status', 'stage', 'message']
+    table.field_names = ['pipeline name', 'cron', 'paused', 'status', 'stage message', 'end time (ISO 8601)']
     try:
         db = Pipeline('gluetube.db')
     except exceptions.dbError:
