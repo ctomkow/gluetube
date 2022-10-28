@@ -7,7 +7,7 @@ docker build -t gluetube-dev:0.1.0 -f dockerfile.dev .
 
 docker volume create gluetube-db
 
-docker run -itd --name gluetube-dev --net=host -v ~/code/gluetube/gluetube:/home/gluetube/.local/lib/python3.10/site-packages/gluetube -v ~/code/pipelines:/home/gluetube/.gluetube/pipelines -v gluetube-db:/home/gluetube.gluetube/db gluetube-dev:0.1.0
+docker run -itd --name gluetube-dev --net=host -v ~/code/gluetube/gluetube:/home/gluetube/.local/lib/python3.10/site-packages/gluetube -v ~/code/pipelines:/home/gluetube/.gluetube/pipelines -v gluetube-db:/home/gluetube/.gluetube/db gluetube-dev:0.1.0
 
 docker exec -it gluetube bash
 > cd ~/.local/lib/python3.10/site-packages/gluetube
