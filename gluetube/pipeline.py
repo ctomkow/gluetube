@@ -49,3 +49,11 @@ class Pipeline(ABC):
 
             return wrapper
         return inner_stage
+
+    def __enter__(self):
+
+        return self
+
+    def __exit__(self, type, value, traceback):
+
+        return False
