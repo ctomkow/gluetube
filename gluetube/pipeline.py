@@ -30,7 +30,7 @@ class Pipeline(ABC):
 
             def wrapper(*args, **kwargs):
 
-                util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run_stage', [int(os.environ['PIPELINE_RUN_ID']), stage, msg]))
+                util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run_stage_and_stage_msg', [int(os.environ['PIPELINE_RUN_ID']), stage, msg]))
                 return method(*args, **kwargs)
 
             return wrapper

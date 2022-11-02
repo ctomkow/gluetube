@@ -27,11 +27,11 @@ class PipelineScanner:
         pipeline_tuples = []
         pipeline_dirs = self._all_dirs(self.pipeline_dir)
 
-        # generate the list of (py_file, directory) unique tuples from pipeline directory
+        # generate the list of (py_file, directory, timestamp) unique tuples from pipeline directory
         for dir in pipeline_dirs:
             py_files = self._all_py_files(dir)
             for py_file in py_files:
-                pipeline_tuples.append((py_file, dir.name))
+                pipeline_tuples.append((py_file.name, dir.name, py_file.lstat().st_mtime))
 
         db_pipelines = self._db_pipelines()
 
@@ -64,11 +64,13 @@ class PipelineScanner:
         for id in not_valid_pipeline_ids:
             util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [id]))
 
-        # found new pipelines (py_file, directory) tuples in pipeline directory
+        # found new pipelines (py_file, directory, timestamp) tuples in pipeline directory
         for pipeline in missing_pipeline_tuples:
-            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline', [re.split(r"\.py$", pipeline[0])[0], pipeline[0], pipeline[1], '']))
+            msg = util.craft_rpc_msg('set_pipeline',
+                                     [re.split(r"\.py$", pipeline[0])[0], pipeline[0], pipeline[1], pipeline[2]])
+            util.send_rpc_msg_to_daemon(msg)
 
-    def _all_dirs(self, current_dir: Path) -> list:
+    def _all_dirs(self, current_dir: Path) -> list[Path]:
 
         dirs = [x for x in current_dir.iterdir() if x.is_dir()]
 
@@ -84,7 +86,7 @@ class PipelineScanner:
             pipeline_dir_list.append(dir)
         return pipeline_dir_list
 
-    def _all_py_files(self, current_dir: Path) -> list:
+    def _all_py_files(self, current_dir: Path) -> list[Path]:
 
         files = [x for x in current_dir.iterdir() if x.is_file()]
 
@@ -95,10 +97,7 @@ class PipelineScanner:
             else:
                 pass
 
-        pipeline_py_list = []
-        for file in files:
-            pipeline_py_list.append(file.name)
-        return pipeline_py_list
+        return files
 
     def _db_pipelines(self) -> list:
 

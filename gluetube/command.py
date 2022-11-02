@@ -2,7 +2,6 @@
 # 2022-09-09
 
 # local imports
-from random import randint
 from db import Pipeline, Store
 import config
 import util
@@ -14,7 +13,6 @@ from autodiscovery import PipelineScanner
 # python imports
 from pathlib import Path
 import struct
-from datetime import datetime
 
 # 3rd party imports
 from prettytable import PrettyTable
@@ -36,7 +34,7 @@ def gluetube_ls() -> list:
 
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
-    table.field_names = ['pipeline name', 'cron', 'paused', 'status', 'stage message', 'end time (ISO 8601)']
+    table.field_names = ['pipeline name', 'cron', 'run date', 'paused', 'status', 'stage message', 'end time (ISO 8601)']
     try:
         db = Pipeline('gluetube.db')
     except exceptions.dbError:
@@ -109,7 +107,7 @@ def pipeline_cron(name: str, cron: str) -> None:
 
     pipeline_id = db.pipeline_id_from_name(name)
 
-    msg = util.craft_rpc_msg('set_cron', [pipeline_id, cron])
+    msg = util.craft_rpc_msg('set_schedule_cron', [pipeline_id, cron])
 
     try:
         util.send_rpc_msg_to_daemon(msg)
