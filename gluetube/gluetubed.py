@@ -236,6 +236,8 @@ class GluetubeDaemon:
             pipeline_id = db.pipeline_id_from_tuple(py_name, dir_name)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to get id from database. {e}") from e
+        
+        # TODO: insert schedule into db as well!!!
 
         try:
             runner = Runner(pipeline_id, name, py_name, dir_name)

@@ -9,6 +9,8 @@ import util
 # python imports
 from pathlib import Path
 import re
+import importlib
+import sys
 
 
 # TODO: error handling
@@ -21,14 +23,24 @@ class PipelineScanner:
         self.pipeline_dir = Path(pipeline_dir)
 
     # TODO: clean up method, pull out parts into own helper methods for easy testing
+    # steps
+    #  1. get tuple (py_file, directory, timestamp) of all pipelines on filesystem
+    #  2. get all existing pipelines from database
+    #  3. compare; generate list of pipelines to be deleted and to be added
+    #  4. make RPC calls
     def scan(self) -> None:
 
-        # a list of tuples, (py_file, directory), this uniquely identifies a pipeline
+        # a list of tuples, (py_file, directory, timestamp)
         pipeline_tuples = []
         pipeline_dirs = self._all_dirs(self.pipeline_dir)
 
         # generate the list of (py_file, directory, timestamp) unique tuples from pipeline directory
         for dir in pipeline_dirs:
+
+            # TODO: need to be able to remove from path if directory disappears
+            # to be able to import modules later
+            #sys.path.append(dir.as_posix())
+
             py_files = self._all_py_files(dir)
             for py_file in py_files:
                 pipeline_tuples.append((py_file.name, dir.name, py_file.lstat().st_mtime))
@@ -51,9 +63,8 @@ class PipelineScanner:
             else:
                 missing_pipeline_tuples.append(tuple)
 
-        not_valid_pipeline_ids = []
-
         # now create list of pipeline id's that need to be deleted from db
+        not_valid_pipeline_ids = []
         for pipeline in db_pipelines.copy():
             if pipeline[0] not in valid_pipeline_ids:
                 not_valid_pipeline_ids.append(pipeline[0])
@@ -64,10 +75,17 @@ class PipelineScanner:
         for id in not_valid_pipeline_ids:
             util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [id]))
 
+        # TODO: continue on with the import module stuff, ehhhh it's not as easy as it looks
         # found new pipelines (py_file, directory, timestamp) tuples in pipeline directory
         for pipeline in missing_pipeline_tuples:
+            #module = importlib.import_module(re.split(r"\.py$", pipeline[0])[0])
             msg = util.craft_rpc_msg('set_pipeline',
-                                     [re.split(r"\.py$", pipeline[0])[0], pipeline[0], pipeline[1], pipeline[2]])
+                                     [
+                                        re.split(r"\.py$", pipeline[0])[0],
+                                        pipeline[0],
+                                        pipeline[1],
+                                        pipeline[2]
+                                     ])
             util.send_rpc_msg_to_daemon(msg)
 
     def _all_dirs(self, current_dir: Path) -> list[Path]:
