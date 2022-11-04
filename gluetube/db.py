@@ -131,12 +131,13 @@ class Pipeline(Database):
 
     # pipeline writes
 
-    def insert_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str) -> None:
+    def insert_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str) -> int:
 
         query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, NULL)"
         params = (name, py_name, dir_name, py_timestamp)
-        self._conn.cursor().execute(query, params)
+        rowid = self._conn.cursor().execute(query, params).lastrowid
         self._conn.commit()
+        return rowid
 
     def delete_pipeline(self, pipeline_id: int) -> None:
 
@@ -169,63 +170,65 @@ class Pipeline(Database):
     # pipeline_schedule writes
 
     def insert_pipeline_schedule(self, pipeline_id: int, cron: str = '', run_date: str = '', paused: int = 0,
-                                 retry_on_crash: int = 0, retry_num: int = 0, max_retries: int = 0) -> None:
+                                 retry_on_crash: int = 0, retry_num: int = 0, max_retries: int = 0) -> int:
 
         query = "INSERT INTO pipeline_schedule VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)"
         params = (pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries)
+        rowid = self._conn.cursor().execute(query, params).lastrowid
+        self._conn.commit()
+        return rowid
+
+    def update_pipeline_schedule_cron(self, schedule_id: int, cron: str) -> None:
+
+        query = "UPDATE pipeline_schedule SET cron = ? WHERE id = ?"
+        params = (cron, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_schedule_cron(self, pipeline_id: int, cron: str) -> None:
+    def update_pipeline_schedule_run_date(self, schedule_id: int, run_date: str) -> None:
 
-        query = "UPDATE pipeline_schedule SET cron = ? WHERE pipeline_id = ?"
-        params = (cron, pipeline_id)
+        query = "UPDATE pipeline_schedule SET run_date = ? WHERE id = ?"
+        params = (run_date, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_schedule_run_date(self, pipeline_id: int, run_date: str) -> None:
+    def update_pipeline_schedule_paused(self, schedule_id: int, paused: int) -> None:
 
-        query = "UPDATE pipeline_schedule SET run_date = ? WHERE pipeline_id = ?"
-        params = (run_date, pipeline_id)
+        query = "UPDATE pipeline_schedule SET paused = ? WHERE id = ?"
+        params = (paused, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_schedule_paused(self, pipeline_id: int, paused: int) -> None:
+    def update_pipeline_schedule_retry_on_crash(self, schedule_id: int, retry_on_crash: int) -> None:
 
-        query = "UPDATE pipeline_schedule SET paused = ? WHERE pipeline_id = ?"
-        params = (paused, pipeline_id)
+        query = "UPDATE pipeline_schedule SET retry_on_crash = ? WHERE id = ?"
+        params = (retry_on_crash, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_schedule_retry_on_crash(self, pipeline_id: int, retry_on_crash: int) -> None:
+    def update_pipeline_schedule_retry_num(self, schedule_id: int, retry_num: int) -> None:
 
-        query = "UPDATE pipeline_schedule SET retry_on_crash = ? WHERE pipeline_id = ?"
-        params = (retry_on_crash, pipeline_id)
+        query = "UPDATE pipeline_schedule SET retry_num = ? WHERE id = ?"
+        params = (retry_num, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_schedule_retry_num(self, pipeline_id: int, retry_num: int) -> None:
+    def update_pipeline_schedule_max_retries(self, schedule_id: int, max_retries: int) -> None:
 
-        query = "UPDATE pipeline_schedule SET retry_num = ? WHERE pipeline_id = ?"
-        params = (retry_num, pipeline_id)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
-
-    def update_pipeline_schedule_max_retries(self, pipeline_id: int, max_retries: int) -> None:
-
-        query = "UPDATE pipeline_schedule SET max_retries = ? WHERE pipeline_id = ?"
-        params = (max_retries, pipeline_id)
+        query = "UPDATE pipeline_schedule SET max_retries = ? WHERE id = ?"
+        params = (max_retries, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
     # pipeline_run writes
 
-    def insert_pipeline_run(self, pipeline_id: int, status: str = '', start_time: str = '') -> None:
+    def insert_pipeline_run(self, pipeline_id: int, status: str = '', start_time: str = '') -> int:
 
         query = "INSERT INTO pipeline_run VALUES (NULL, ?, ?, NULL, NULL, NULL, ?, NULL)"
         params = (pipeline_id, status, start_time)
-        self._conn.cursor().execute(query, params)
+        rowid = self._conn.cursor().execute(query, params).lastrowid
         self._conn.commit()
+        return rowid
 
     def update_pipeline_run_status(self, pipeline_run_id: int, status: str) -> None:
 
@@ -283,8 +286,8 @@ class Pipeline(Database):
     def ls_pipelines(self) -> list:
 
         results = self._conn.cursor().execute("""
-            SELECT pipeline.name, pipeline_schedule.cron, pipeline_schedule.run_date, pipeline_schedule.paused,
-                   pipeline_run.status, pipeline_run.stage_msg, pipeline_run.end_time
+            SELECT pipeline.name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.run_date,
+                   pipeline_schedule.paused, pipeline_run.status, pipeline_run.stage_msg, pipeline_run.end_time
             FROM pipeline
             LEFT JOIN pipeline_schedule
             ON pipeline.id = pipeline_schedule.pipeline_id
@@ -304,7 +307,8 @@ class Pipeline(Database):
     def all_pipelines_scheduling(self) -> list:
 
         results = self._conn.cursor().execute("""
-            SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name, pipeline_schedule.cron,
+            SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
+                   pipeline_schedule.id, pipeline_schedule.cron,
                    pipeline_schedule.run_date, pipeline_schedule.paused
             FROM pipeline
             LEFT JOIN pipeline_schedule
@@ -339,6 +343,27 @@ class Pipeline(Database):
         params = (pipeline_name,)
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()[0]
+
+    def pipeline_schedule_run_date(self, schedule_id: int) -> str:
+
+        query = "SELECT run_date FROM pipeline_schedule WHERE id = ?"
+        params = (schedule_id,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()[0]
+
+    def pipeline_schedule_cron(self, schedule_id: int) -> str:
+
+        query = "SELECT cron FROM pipeline_schedule WHERE id = ?"
+        params = (schedule_id,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()[0]
+
+    def pipeline_schedules_id(self, pipeline_id: int) -> list:
+
+        query = "SELECT id FROM pipeline_schedule WHERE pipeline_id = ?"
+        params = (pipeline_id,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchall()
 
     def pipeline_run_id_by_pipeline_id_and_start_time(self, pipeline_id: int, start_time: str) -> int:
 

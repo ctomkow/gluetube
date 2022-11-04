@@ -34,7 +34,9 @@ def gluetube_ls() -> list:
 
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
-    table.field_names = ['pipeline name', 'cron', 'run date', 'paused', 'status', 'stage message', 'end time (ISO 8601)']
+    table.field_names = [
+        'pipeline name', 'schedule ID', 'cron', 'run at (IS0 8601)', 'paused', 'status', 'stage message', 'end time (ISO 8601)'
+    ]
     try:
         db = Pipeline('gluetube.db')
     except exceptions.dbError:
@@ -98,16 +100,21 @@ def daemon_bg(debug: bool) -> None:
         raise
 
 
-def pipeline_cron(name: str, cron: str) -> None:
+def schedule_cron(schedule_id: int, cron: str) -> None:
+
+    msg = util.craft_rpc_msg('set_schedule_cron', [schedule_id, cron])
 
     try:
-        db = Pipeline('gluetube.db')
-    except exceptions.dbError:
+        util.send_rpc_msg_to_daemon(msg)
+    except exceptions.rpcError:
         raise
 
-    pipeline_id = db.pipeline_id_from_name(name)
 
-    msg = util.craft_rpc_msg('set_schedule_cron', [pipeline_id, cron])
+def schedule_at(schedule_id: int, run_date_time: str) -> None:
+
+    # TODO: validate run_date_time is valid ISO 8601 string
+
+    msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, run_date_time])
 
     try:
         util.send_rpc_msg_to_daemon(msg)

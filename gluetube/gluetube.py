@@ -77,15 +77,18 @@ class Gluetube:
                     else:
                         logging.critical(f"Pipeline run failure. {e}")
                     raise SystemExit(1)
-            elif args.cron:
-                try:
-                    command.pipeline_cron(args.PIPELINE[0], args.cron)
-                except exceptions.rpcError as e:
-                    if args.debug:
-                        logging.exception(f"Is the daemon running? {e}")
-                    else:
-                        logging.error(f"Is the daemon running? {e}")
-                    raise SystemExit(1)
+        elif 'SID' in args:  # gluetube schedule level
+            try:
+                if args.cron:
+                    command.schedule_cron(args.SID[0], args.cron)
+                elif args.at:
+                    command.schedule_at(args.SID[0], args.at)
+            except exceptions.rpcError as e:
+                if args.debug:
+                    logging.exception(f"Is the daemon running? {e}")
+                else:
+                    logging.error(f"Is the daemon running? {e}")
+                raise SystemExit(1)
 
         # gracefully exit
         raise SystemExit(0)
@@ -116,7 +119,11 @@ class Gluetube:
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
         pipeline.add_argument('PIPELINE', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline.add_argument('-r', '--run', action='store_true', help='manually run the pipeline once')
-        pipeline.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
+
+        schedule = sub_parser.add_parser('schedule', description='perform actions and updates to schedules')
+        schedule.add_argument('SID', action='store', type=int, nargs=1, help='id of schedule to modify')
+        schedule.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
+        schedule.add_argument('--at', action='store', metavar='AT', help="run on a date and time (ISO 8601) e.g. '2022-10-01 00:00:00'")
 
         return parser.parse_args()
 
