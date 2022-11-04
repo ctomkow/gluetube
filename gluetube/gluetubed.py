@@ -177,13 +177,9 @@ class GluetubeDaemon:
         pipelines = db.all_pipelines_scheduling()
         for pipeline in pipelines:
 
-            # TODO: handle if cron or run_date
-
-            cron = None
-            try:
-                cron = CronTrigger.from_crontab(pipeline[4])
-            except ValueError as e:  # crontab validation failed
-                logging.error(f"Pipeline, {pipeline[1]}, will not run!. crontab incorrect: {pipeline[4]}. {e}")
+            # if pipeline job is scheduled
+            if scheduler.get_job(str(pipeline[0])):
+                continue
 
             try:
                 runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
@@ -191,12 +187,21 @@ class GluetubeDaemon:
                 logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
                 continue
 
-            # if pipeline job isn't scheduled at all
-            if not scheduler.get_job(str(pipeline[0])):
-                if cron:
-                    scheduler.add_job(runner.run, cron, id=str(pipeline[0]))
-                else:
-                    scheduler.add_job(runner.run, trigger=DateTrigger(datetime(2999, 1, 1)), id=str(pipeline[0]))
+            if pipeline[4]:  # if cron
+                try:
+                    scheduler.add_job(runner.run, CronTrigger.from_crontab(pipeline[4]), id=str(pipeline[0]))
+                except ValueError as e:  # crontab validation failed
+                    logging.error(f"Pipeline, {pipeline[1]}, not scheduled!. crontab incorrect: {pipeline[4]}. {e}")
+            elif pipeline[5]:  # if run_date
+                try:  # TODO: validate that ISO 8601 timestamp works for datetrigger
+                    scheduler.add_job(runner.run, DateTrigger(pipeline[5]), id=str(pipeline[0]))
+                except ValueError as e:  # run_date validation failed
+                    logging.error(f"Pipeline, {pipeline[1]}, no scheduled!. run_date incorrect: {pipeline[4]}. {e}")
+            else:  # if no schedule, set dummy schedule
+                scheduler.add_job(runner.run, DateTrigger(datetime(2999, 1, 1)), id=str(pipeline[0]))
+
+            if pipeline[6]:  # if paused
+                scheduler.get_job(str(pipeline[0])).pause()
 
     def _schedule_auto_discovery(self, scheduler: BackgroundScheduler) -> None:
 
@@ -216,15 +221,14 @@ class GluetubeDaemon:
     # ###############################################################################################
     # RPC methods that are called from daemon loop when msg received from unix socket
     #
-    # RPC 'set' and 'delete' methods are writing to the database and interacting with the schedule
+    # RPC 'set' and 'delete' methods are writing to the database and interacting with the scheduler
     # RPC '_insert' and '_update' methods are solely db writes
 
     # ##### 'set' and 'delete' methods
 
     # auto-discovery calls this whenever a new pipeline.py AND pipeline_directory unique tuple is found
-    def set_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str,
-                     cron: str = '', run_date: str = '',
-                     scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+    def set_new_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str,
+                         scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:
             db.insert_pipeline(name, py_name, dir_name, py_timestamp)
@@ -236,8 +240,14 @@ class GluetubeDaemon:
             pipeline_id = db.pipeline_id_from_tuple(py_name, dir_name)
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to get id from database. {e}") from e
-        
-        # TODO: insert schedule into db as well!!!
+
+        try:
+            db.insert_pipeline_schedule(pipeline_id)
+            logging.info(f"Pipeline schedule for, {name}, added to database.")
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+        # TODO: db call to gluetube app table, get if run_immediately is set or not
 
         try:
             runner = Runner(pipeline_id, name, py_name, dir_name)
@@ -245,12 +255,11 @@ class GluetubeDaemon:
             raise exceptions.DaemonError(f"{e}. Not scheduling pipeline, {name}, runner creation failed.") from e
 
         try:
-            if cron:
-                scheduler.add_job(runner.run, trigger=CronTrigger.from_crontab(cron), id=str(pipeline_id))
-            elif run_date:
-                scheduler.add_job(runner.run, trigger=DateTrigger(run_date), id=str(pipeline_id))
-            else:  # job runs if no trigger is specified. So, I set a dummy date trigger for now to avoid job run
-                scheduler.add_job(runner.run, trigger=DateTrigger(datetime(2999, 1, 1)), id=str(pipeline_id))
+            # if run_immediately:
+            #     scheduler.add_job(runner.run, id=str(pipeline_id))
+
+            # job runs if no trigger is specified. So, I set a dummy date trigger for now to avoid job run
+            scheduler.add_job(runner.run, trigger=DateTrigger(datetime(2999, 1, 1)), id=str(pipeline_id))
         except ConflictingIdError as e:
             # rollback database insert
             db.delete_pipeline(pipeline_id)
@@ -375,6 +384,7 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
+    # TODO: set schedule by pipeline_id
     def _update_pipeline_schedule_cron(self, id: int, cron: str,
                                        scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 

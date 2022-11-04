@@ -54,7 +54,7 @@ class Runner:
         logging.info(f"Pipeline: {self.p_name}, started.")
         util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]))
 
-        sleep(1)  # avoid race condition on db lookup, a hack i know
+        sleep(1)  # avoid race condition on db lookup, a hack i know TODO: fix
 
         # get pipeline_run_id, also set the current_run of pipeline to the pipeline_run_id
         db = Pipeline('gluetube.db')

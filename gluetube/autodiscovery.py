@@ -9,8 +9,6 @@ import util
 # python imports
 from pathlib import Path
 import re
-import importlib
-import sys
 
 
 # TODO: error handling
@@ -36,11 +34,6 @@ class PipelineScanner:
 
         # generate the list of (py_file, directory, timestamp) unique tuples from pipeline directory
         for dir in pipeline_dirs:
-
-            # TODO: need to be able to remove from path if directory disappears
-            # to be able to import modules later
-            #sys.path.append(dir.as_posix())
-
             py_files = self._all_py_files(dir)
             for py_file in py_files:
                 pipeline_tuples.append((py_file.name, dir.name, py_file.lstat().st_mtime))
@@ -69,17 +62,18 @@ class PipelineScanner:
             if pipeline[0] not in valid_pipeline_ids:
                 not_valid_pipeline_ids.append(pipeline[0])
 
+        # TODO: on new timestamp or new pipeline, if option set to run on discovery,
+        #       use a 'set' RPC call to also have scheduler run right away
+
         # ### Now make RPC Calls ###
 
-        # orphaned pipelines that need to be removed from db
+        # remove orphaned pipelines (from scheduler and db)
         for id in not_valid_pipeline_ids:
             util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [id]))
 
-        # TODO: continue on with the import module stuff, ehhhh it's not as easy as it looks
-        # found new pipelines (py_file, directory, timestamp) tuples in pipeline directory
+        # add new pipeline (to scheduler and db)
         for pipeline in missing_pipeline_tuples:
-            #module = importlib.import_module(re.split(r"\.py$", pipeline[0])[0])
-            msg = util.craft_rpc_msg('set_pipeline',
+            msg = util.craft_rpc_msg('set_new_pipeline',
                                      [
                                         re.split(r"\.py$", pipeline[0])[0],
                                         pipeline[0],

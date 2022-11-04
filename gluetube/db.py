@@ -25,6 +25,7 @@ class Database:
         else:
             self._conn = sqlite3.connect(f"{gt_cfg.database_dir}/{db_name}")
             self._conn.execute('pragma journal_mode=wal;')
+            self._conn.execute('pragma foreign_keys=ON;')
 
     def close(self) -> None:
 
@@ -81,8 +82,14 @@ class Pipeline(Database):
                 retry_on_crash INTEGER,
                 retry_num INTEGER,
                 max_retries INTEGER,
-                CHECK((cron IS NULL) <> (run_date IS NULL)),
-                CONSTRAINT fk_pipline_id
+                CHECK(
+                    ((cron IS NULL OR cron = '') AND (run_date IS NULL OR run_date = ''))
+                    OR
+                    ((cron IS NOT NULL OR cron != '') AND (run_date IS NULL OR run_date = ''))
+                    OR
+                    ((cron IS NULL OR cron = '') AND (run_date IS NOT NULL OR run_date != ''))
+                ),
+                CONSTRAINT fk_piplineschedule_pipeline
                     FOREIGN KEY(pipeline_id)
                     REFERENCES pipeline(id)
                     ON DELETE CASCADE
@@ -99,7 +106,7 @@ class Pipeline(Database):
                 exit_msg TEXT,
                 start_time TEXT,
                 end_time TEXT,
-                CONSTRAINT fk_pipline_id
+                CONSTRAINT fk_piplinerun_pipeline
                     FOREIGN KEY(pipeline_id)
                     REFERENCES pipeline(id)
                     ON DELETE CASCADE
