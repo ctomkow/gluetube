@@ -1,6 +1,41 @@
 # gluetube
 todo
 
+## roadmap
+
+### 0.1.0 roadmap
+ - [x] run pipeline in isolated env
+ - [ ] autodiscover pipelines (incl. on file change)
+ - [x] tracking status and stages of pipeline
+ - [x] shared variables across pipelines
+ - [x] pipeline scheduler
+ - [x] cron scheduling
+ - [ ] at scheduling (run once at date time)
+ - [x] gluetube daemon
+ - [x] sqlite database schema
+ - [ ] dockerfile
+ - [ ] hello world tutorial
+ - [ ] encrypted key value database
+ - [ ] 50%+ test coverage
+ - [ ] cli (daemon control, modify scheduling, view pipelines and runs)
+ - [ ] pip install (directory mgmt, upgrades, etc)
+ 
+### 0.2.0 roadmap
+ - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
+ - [ ] re-run pipeline if crashed. specify max retries
+ - [ ] git pull repo of pipelines into pipeline_dir
+ - [ ] option to define schedule in pipeline as code
+
+### 0.3.0 roadmap
+ - [ ] frontend web ui
+ - [ ] REST api endpoint to trigger running pipeline
+ - [ ] development pipeline mode (verbose output for testing pipeline runs)
+
+### 0.4.0 roadmap
+ - [ ] dynamic webhook url that pipeline can access (for event listener type pipelines)
+ - [ ] .rpm
+ - [ ] .deb
+
 ## dev env
 
 docker build -t gluetube-dev:0.1.0 -f dockerfile.dev .
