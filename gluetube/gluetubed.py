@@ -288,7 +288,7 @@ class GluetubeDaemon:
 
     def set_schedule_cron(self, schedule_id: int, cron: str,
                           scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
-
+        # TODO: handle when reschedule works but db call fails and vice versa
         try:
             scheduler.reschedule_job(str(schedule_id), trigger=CronTrigger.from_crontab(cron))
         except JobLookupError as e:
@@ -304,7 +304,7 @@ class GluetubeDaemon:
 
     def set_schedule_at(self, schedule_id: int, run_date_time: str,
                         scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
-
+        # TODO: handle when reschedule works but db call fails and vice versa
         try:
             scheduler.reschedule_job(str(schedule_id), trigger=DateTrigger(run_date_time))
         except JobLookupError as e:
@@ -318,8 +318,27 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exceptions.DaemonError(f"Failed to update database. {e}") from e
 
-        # TODO: if db update fails, then how to rollback job re-scheduling???
+    # Steps
+    #   1. get all pipeline details from db
+    #   2. create runner object
+    #   3. insert new schedule into db
+    #   4. schedule a dummy job into scheduler
+    # TODO: handle when reschedule works but db call fails and vice versa
+    def set_schedule_new(self, pipeline_id: int, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
+        pipeline = db.pipeline(pipeline_id)
+
+        try:
+            runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
+        except exceptions.RunnerError as e:
+            logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
+
+        try:
+            schedule_id = db.insert_pipeline_schedule(pipeline_id)
+        except sqlite3.Error as e:
+            raise exceptions.DaemonError(f"Failed to update database. {e}") from e
+
+        scheduler.add_job(runner.run, DateTrigger(datetime(2999, 1, 1)), id=str(schedule_id))
 
     def set_pipeline_run(self, pipeline_id: int, status: str, start_time: str,
                          scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:

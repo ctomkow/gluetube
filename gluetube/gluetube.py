@@ -48,41 +48,36 @@ class Gluetube:
         elif args.scan:
             # TODO: try/except
             command.gluetube_scan()
-        elif 'DAEMON' in args:  # gluetube daemon level
-            if args.foreground:
-                try:
+        elif 'sub_cmd_daemon' in args:  # gluetube daemon sub-command level
+            try:
+                if args.foreground:
                     command.daemon_fg(args.debug)
-                except exceptions.DaemonError as e:
-                    if args.debug:
-                        logging.exception(f"Daemon failure. {e}")
-                    else:
-                        logging.critical(f"Daemon failure. {e}")
-                    raise SystemExit(1)
-            elif args.background:
-                try:
+                elif args.background:
                     command.daemon_bg(args.debug)
-                except exceptions.DaemonError as e:
-                    if args.debug:
-                        logging.exception(f"Daemon failure. {e}")
-                    else:
-                        logging.critical(f"Daemon failure. {e}")
-                    raise SystemExit(1)
-        elif 'PIPELINE' in args:  # gluetube pipeline level
-            if args.run:
-                try:
-                    command.pipeline_run(args.PIPELINE[0])
-                except (exceptions.dbError, exceptions.RunnerError) as e:
-                    if args.debug:
-                        logging.exception(f"Pipeline run failure. {e}")
-                    else:
-                        logging.critical(f"Pipeline run failure. {e}")
-                    raise SystemExit(1)
-        elif 'SID' in args:  # gluetube schedule level
+            except exceptions.DaemonError as e:
+                if args.debug:
+                    logging.exception(f"Daemon failure. {e}")
+                else:
+                    logging.critical(f"Daemon failure. {e}")
+                raise SystemExit(1)
+        elif 'sub_cmd_pipeline' in args:  # gluetube pipeline sub-command level
+            try:
+                if args.run:
+                    command.pipeline_run(args.NAME[0])
+            except (exceptions.dbError, exceptions.RunnerError) as e:
+                if args.debug:
+                    logging.exception(f"Pipeline run failure. {e}")
+                else:
+                    logging.critical(f"Pipeline run failure. {e}")
+                raise SystemExit(1)
+        elif 'sub_cmd_schedule' in args:  # gluetube schedule sub-command level
             try:
                 if args.cron:
-                    command.schedule_cron(args.SID[0], args.cron)
+                    command.schedule_cron(args.id, args.cron)
                 elif args.at:
-                    command.schedule_at(args.SID[0], args.at)
+                    command.schedule_at(args.id, args.at)
+                elif args.new:
+                    command.schedule_new(args.new)
             except exceptions.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
@@ -110,20 +105,24 @@ class Gluetube:
 
         sub_parser = parser.add_subparsers()
         daemon = sub_parser.add_parser('daemon', description='start gluetube as a daemon process')
+        daemon.add_argument('sub_cmd_daemon', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
         daemon_group = daemon.add_mutually_exclusive_group()
-        daemon_group.add_argument('DAEMON', action='store', metavar='', nargs='?')
         daemon_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
         daemon_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
-        # TODO: gluetube daemon -s --stop. Needs a PID file to be tracked in the daemon, also specify it's location in gluetube.cfg
+        # TODO: gluetube daemon -s --stop. Needs a PID to be tracked in the daemon, also specify it's location in gluetube.cfg
 
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
-        pipeline.add_argument('PIPELINE', action='store', type=str, nargs=1, help='name of pipeline to act on')
+        pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        pipeline.add_argument('NAME', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline.add_argument('-r', '--run', action='store_true', help='manually run the pipeline once')
 
-        schedule = sub_parser.add_parser('schedule', description='perform actions and updates to schedules')
-        schedule.add_argument('SID', action='store', type=int, nargs=1, help='id of schedule to modify')
-        schedule.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
-        schedule.add_argument('--at', action='store', metavar='AT', help="run on a date and time (ISO 8601) e.g. '2022-10-01 00:00:00'")
+        schedule = sub_parser.add_parser('schedule', description='perform actions and updates to existing schedules')
+        schedule.add_argument('sub_cmd_schedule', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        schedule.add_argument('--id', action='store', metavar='ID', type=int, help='id of schedule to modify')
+        schedule.add_argument('--new', action='store', metavar='NAME', type=str, help='the name of the pipeline to tie the new schedule to')
+        schedule_group = schedule.add_mutually_exclusive_group()
+        schedule_group.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
+        schedule_group.add_argument('--at', action='store', metavar='AT', help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
 
         return parser.parse_args()
 

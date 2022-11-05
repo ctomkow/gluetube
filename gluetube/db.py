@@ -316,6 +316,17 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
+    def pipeline(self, pipeline_id: int) -> list:
+
+        query = """
+            SELECT id, name, py_name, dir_name, py_timestamp, latest_run
+            FROM pipeline
+            WHERE id = ?
+            """
+        params = (pipeline_id,)
+        results = self._conn.cursor().execute(query, params)
+        return results.fetchone()
+
     def pipeline_id_from_name(self, name: str) -> int:
 
         query = "SELECT id FROM pipeline WHERE name = ?"

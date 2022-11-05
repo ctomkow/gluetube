@@ -102,6 +102,8 @@ def daemon_bg(debug: bool) -> None:
 
 def schedule_cron(schedule_id: int, cron: str) -> None:
 
+    # TODO: basic cron validation
+
     msg = util.craft_rpc_msg('set_schedule_cron', [schedule_id, cron])
 
     try:
@@ -115,6 +117,23 @@ def schedule_at(schedule_id: int, run_date_time: str) -> None:
     # TODO: validate run_date_time is valid ISO 8601 string
 
     msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, run_date_time])
+
+    try:
+        util.send_rpc_msg_to_daemon(msg)
+    except exceptions.rpcError:
+        raise
+
+
+def schedule_new(pipeline_name: str) -> None:
+
+    try:
+        db = Pipeline('gluetube.db')
+    except exceptions.dbError:
+        raise
+
+    pipeline_id = db.pipeline_id_from_name(pipeline_name)
+
+    msg = util.craft_rpc_msg('set_schedule_new', [pipeline_id])
 
     try:
         util.send_rpc_msg_to_daemon(msg)
