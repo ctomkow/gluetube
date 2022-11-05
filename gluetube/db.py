@@ -96,6 +96,7 @@ class Pipeline(Database):
             )""")
         self._conn.commit()
 
+        # TODO: add column to identify what schedule ran the pipeline
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline_run(
                 id INTEGER PRIMARY KEY,
