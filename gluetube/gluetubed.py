@@ -279,7 +279,7 @@ class GluetubeDaemon:
         # remove all schedules for the pipeline
         for an_id in schedules_id:
             try:
-                scheduler.remove_job(str(an_id))
+                scheduler.remove_job(str(an_id[0]))
             except JobLookupError as e:
                 raise exception.DaemonError(f"Failed to delete pipeline schedule. {e}") from e
 

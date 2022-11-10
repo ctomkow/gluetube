@@ -22,64 +22,44 @@ class PipelineScanner:
         if not self.pipeline_dir.exists():
             raise exception.AutodiscoveryError(f"pipeline directory, {self.pipeline_dir}, does not exist")
 
-    # TODO: clean up method, pull out parts into own helper methods for easy testing
     # steps
     #  1. get tuple (py_file, directory, timestamp) of all pipelines on filesystem
-    #  2. get all existing pipelines from database
+    #  2. get tuple (py_file, directory, timestamp) of all pipelines from database
     #  3. compare; generate list of pipelines to be deleted and to be added
     #  4. make RPC calls
     def scan(self) -> None:
 
         # a tuple (py_file, directory, py_file_timestamp), representing a pipeline
         pipeline_dirs = self._all_dirs(self.pipeline_dir)
-        enum_pipelines = self._enumerate_pipelines(pipeline_dirs)
+        fs_pipelines = self._enumerate_fs_pipelines(pipeline_dirs)
 
-        db_pipelines = self._all_db_pipelines()
+        # a tuple (py_file, directory, py_file_timestamp), representing a pipeline
+        db_data = self._all_db_pipelines()
+        db_pipelines = self._enumerate_db_pipelines(db_data)
 
-        if not db_pipelines:
-            self._compare_pipelines(enum_pipelines, (db_pipelines[2], db_pipelines[3], db_pipelines[4]))
-
-        missing_pipeline_tuples = []
-        valid_pipeline_ids = []
-
-        # # compare (py_file, directory) pipelines found in directory with pipelines found in database
-        # for tuple in pipeline_tuples:
-        #     pipeline_found = False
-        #     for pipeline in all_pipelines_from_db.copy():
-        #         if (tuple[0] == pipeline[2]) and (tuple[1] == pipeline[3]):
-        #             # pipeline exists in db
-        #             pipeline_found = True
-        #             break
-        #     if pipeline_found:
-        #         valid_pipeline_ids.append(pipeline[0])
-        #     else:
-        #         missing_pipeline_tuples.append(tuple)
-
-        # now create list of pipeline id's that need to be deleted from db
-        not_valid_pipeline_ids = []
-        for pipeline in db_pipelines.copy():
-            if pipeline[0] not in valid_pipeline_ids:
-                not_valid_pipeline_ids.append(pipeline[0])
-
-        # TODO: on new timestamp or new pipeline, if option set to run on discovery,
-        #       use a 'set' RPC call to also have scheduler run right away
+        missing_fs_pipelines = self._diff_two_elems(fs_pipelines, db_pipelines)
+        missing_db_pipelines = self._diff_two_elems(db_pipelines, fs_pipelines)
 
         # ### Now make RPC Calls ###
 
-        # remove orphaned pipelines (from scheduler and db)
-        for id in not_valid_pipeline_ids:
-                            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [id]))
-
         # add new pipeline (to scheduler and db)
-        for pipeline in missing_pipeline_tuples:
+        for pipeline in missing_fs_pipelines:
             msg = util.craft_rpc_msg('set_new_pipeline',
                                      [
-                                        re.split(r"\.py$", pipeline[0])[0],
+                                        re.split(r"\.py$", pipeline[0])[0],  # TODO: change this to add random name like docker
                                         pipeline[0],
                                         pipeline[1],
                                         pipeline[2]
                                      ])
             util.send_rpc_msg_to_daemon(msg)
+
+        # remove orphaned pipelines (from scheduler and db)
+        for pipeline in missing_db_pipelines:
+            pipeline_id = self._db_pipeline_id(pipeline[0], pipeline[1])
+            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [pipeline_id]))
+
+        # TODO: on new timestamp or new pipeline, if option set to run on discovery,
+        #       use a 'set' RPC call to also have scheduler run right away
 
     def _all_dirs(self, current_dir: Path) -> list[Path]:
 
@@ -110,6 +90,7 @@ class PipelineScanner:
 
         return files
 
+    # TODO: rework how db is read to allow for easy unit tests (e.g. allow test to specify :memory: db type for testing)
     def _all_db_pipelines(self) -> list[tuple[int, str, str, str, float, int]]:
 
         try:
@@ -122,8 +103,21 @@ class PipelineScanner:
 
         return pipelines
 
+    # TODO: rework how db is read to allow for easy unit tests (e.g. allow test to specify :memory: db type for testing)
+    def _db_pipeline_id(self, py_name: str, dir_name: str) -> int:
+
+        try:
+            db = Pipeline('gluetube.db')
+        except exception.dbError:
+            raise
+
+        pipeline_id = db.pipeline_id_from_tuple(py_name, dir_name)
+        db.close()
+
+        return pipeline_id
+
     # list of tuples representing the pipelines (py_file, directory, py_file_timestamp)
-    def _enumerate_pipelines(self, pipeline_dirs: list[Path]) -> list[tuple[str, str, float]]:
+    def _enumerate_fs_pipelines(self, pipeline_dirs: list[Path]) -> list[tuple[str, str, float]]:
 
         tuples = []
         for dir in pipeline_dirs:
@@ -133,23 +127,23 @@ class PipelineScanner:
 
         return tuples
 
-    def _compare_pipelines(self,
-                           enumerated: list[tuple[str, str, float]],
-                           stored: list[tuple[str, str, float]]) -> tuple[list, list]:
+    def _enumerate_db_pipelines(self,
+                                pipeline_data: list[tuple[int, str, str, str, float, int]]) -> list[tuple[str, str, float]]:
 
-        missing_pipeline_tuples = []
-        valid_pipeline_ids = []
+        enum = []
 
-        for tuple in enumerated:
-            pipeline_found = False
-            for pipeline in stored.copy():
-                if (tuple[0] == pipeline[2]) and (tuple[1] == pipeline[3]):
-                    # pipeline exists in db
-                    pipeline_found = True
-                    break
-            if pipeline_found:
-                valid_pipeline_ids.append(pipeline[0])
-            else:
-                missing_pipeline_tuples.append(tuple)
+        for pipeline in pipeline_data:
+            enum.append((pipeline[2], pipeline[3], pipeline[4]))
 
-        return None  # TODO: change this
+        return enum
+
+    def _diff_two_elems(self, a: list, b: list, diff_type: str = 'a_diff_b') -> list:
+
+        if diff_type == 'a_diff_b':
+            return list(set(a) - (set(b)))
+        elif diff_type == 'b_diff_a':
+            return list(set(b) - (set(a)))
+        elif diff_type == 'diff_both':
+            return list(set(a).symmetric_difference(set(b)))
+        else:
+            return []
