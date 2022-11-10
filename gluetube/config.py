@@ -2,7 +2,7 @@
 # 2022-08-03
 
 # local imports
-import exceptions
+import exception
 
 # python imports
 import configparser
@@ -20,10 +20,10 @@ class Parser(ABC):
         try:
             self.filename = self.config.read(conf_locations)
         except configparser.ParsingError as e:
-            raise exceptions.ConfigFileParseError("Config file reading error.", self.filename) from e
+            raise exception.ConfigFileParseError("Config file reading error.", self.filename) from e
 
         if not self.filename:
-            raise exceptions.ConfigFileNotFoundError(conf_locations)
+            raise exception.ConfigFileNotFoundError(conf_locations)
 
         self.parse()
 
@@ -45,4 +45,4 @@ class Gluetube(Parser):
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
         except KeyError as e:
-            raise exceptions.ConfigFileParseError(f"Failed to lookup key, {e}", self.filename) from e
+            raise exception.ConfigFileParseError(f"Failed to lookup key, {e}", self.filename) from e

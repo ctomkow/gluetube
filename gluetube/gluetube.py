@@ -5,7 +5,7 @@
 
 # local imports
 import command
-import exceptions
+import exception
 
 # python imports
 import logging
@@ -30,7 +30,7 @@ class Gluetube:
         elif args.ls:
             try:
                 print(command.gluetube_ls())
-            except exceptions.dbError as e:
+            except exception.dbError as e:
                 if args.debug:
                     logging.exception(f"List pipelines failed. {e}")
                 else:
@@ -39,7 +39,7 @@ class Gluetube:
         elif args.dev:
             try:
                 command.gluetube_dev(args.dev)
-            except exceptions.rpcError as e:
+            except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
                 else:
@@ -54,7 +54,7 @@ class Gluetube:
                     command.daemon_fg(args.debug)
                 elif args.background:
                     command.daemon_bg(args.debug)
-            except exceptions.DaemonError as e:
+            except exception.DaemonError as e:
                 if args.debug:
                     logging.exception(f"Daemon failure. {e}")
                 else:
@@ -64,7 +64,7 @@ class Gluetube:
             try:
                 if args.run:
                     command.pipeline_run(args.NAME[0])
-            except (exceptions.dbError, exceptions.RunnerError) as e:
+            except (exception.dbError, exception.RunnerError) as e:
                 if args.debug:
                     logging.exception(f"Pipeline run failure. {e}")
                 else:
@@ -78,7 +78,7 @@ class Gluetube:
                     command.schedule_at(args.id, args.at)
                 elif args.new:
                     command.schedule_new(args.new)
-            except exceptions.rpcError as e:
+            except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
                 else:

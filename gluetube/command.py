@@ -7,7 +7,7 @@ import config
 import util
 from gluetubed import GluetubeDaemon
 from runner import Runner
-import exceptions
+import exception
 from autodiscovery import PipelineScanner
 
 # python imports
@@ -39,7 +39,7 @@ def gluetube_ls() -> list:
     ]
     try:
         db = Pipeline('gluetube.db')
-    except exceptions.dbError:
+    except exception.dbError:
         raise
 
     details = db.ls_pipelines()
@@ -52,7 +52,7 @@ def pipeline_run(name: str) -> None:
 
     try:
         db = Pipeline('gluetube.db')
-    except exceptions.dbError:
+    except exception.dbError:
         raise
 
     pipeline_id = db.pipeline_id_from_name(name)
@@ -61,7 +61,7 @@ def pipeline_run(name: str) -> None:
     # TODO: also need to inject custom gluetube env vars into instance
     try:
         runner = Runner(pipeline_id, name, pipeline_py, pipeline_dir)
-    except exceptions.RunnerError:
+    except exception.RunnerError:
         raise
 
     runner.run()
@@ -73,7 +73,7 @@ def gluetube_dev(msg: str) -> None:
     msg = struct.pack('>I', len(msg_bytes)) + msg_bytes
     try:
         util.send_rpc_msg_to_daemon(msg)
-    except exceptions.rpcError:
+    except exception.rpcError:
         raise
 
 
@@ -88,7 +88,7 @@ def daemon_fg(debug: bool) -> None:
 
     try:
         GluetubeDaemon().start(debug, fg=True)
-    except exceptions.DaemonError:
+    except exception.DaemonError:
         raise
 
 
@@ -96,7 +96,7 @@ def daemon_bg(debug: bool) -> None:
 
     try:
         GluetubeDaemon().start(debug)
-    except exceptions.DaemonError:
+    except exception.DaemonError:
         raise
 
 
@@ -108,7 +108,7 @@ def schedule_cron(schedule_id: int, cron: str) -> None:
 
     try:
         util.send_rpc_msg_to_daemon(msg)
-    except exceptions.rpcError:
+    except exception.rpcError:
         raise
 
 
@@ -120,7 +120,7 @@ def schedule_at(schedule_id: int, run_date_time: str) -> None:
 
     try:
         util.send_rpc_msg_to_daemon(msg)
-    except exceptions.rpcError:
+    except exception.rpcError:
         raise
 
 
@@ -128,7 +128,7 @@ def schedule_new(pipeline_name: str) -> None:
 
     try:
         db = Pipeline('gluetube.db')
-    except exceptions.dbError:
+    except exception.dbError:
         raise
 
     pipeline_id = db.pipeline_id_from_name(pipeline_name)
@@ -137,5 +137,5 @@ def schedule_new(pipeline_name: str) -> None:
 
     try:
         util.send_rpc_msg_to_daemon(msg)
-    except exceptions.rpcError:
+    except exception.rpcError:
         raise

@@ -3,7 +3,7 @@
 
 # local imports
 from db import Pipeline
-import exceptions
+import exception
 import util
 
 # python imports
@@ -19,6 +19,8 @@ class PipelineScanner:
     def __init__(self, pipeline_dir: str) -> list:
 
         self.pipeline_dir = Path(pipeline_dir)
+        if not self.pipeline_dir.exists():
+            raise exception.AutodiscoveryError(f"pipeline directory, {self.pipeline_dir}, does not exist")
 
     # TODO: clean up method, pull out parts into own helper methods for easy testing
     # steps
@@ -28,33 +30,30 @@ class PipelineScanner:
     #  4. make RPC calls
     def scan(self) -> None:
 
-        # a list of tuples, (py_file, directory, timestamp)
-        pipeline_tuples = []
+        # a tuple (py_file, directory, py_file_timestamp), representing a pipeline
         pipeline_dirs = self._all_dirs(self.pipeline_dir)
+        enum_pipelines = self._enumerate_pipelines(pipeline_dirs)
 
-        # generate the list of (py_file, directory, timestamp) unique tuples from pipeline directory
-        for dir in pipeline_dirs:
-            py_files = self._all_py_files(dir)
-            for py_file in py_files:
-                pipeline_tuples.append((py_file.name, dir.name, py_file.lstat().st_mtime))
+        db_pipelines = self._all_db_pipelines()
 
-        db_pipelines = self._db_pipelines()
+        if not db_pipelines:
+            self._compare_pipelines(enum_pipelines, (db_pipelines[2], db_pipelines[3], db_pipelines[4]))
 
         missing_pipeline_tuples = []
         valid_pipeline_ids = []
 
-        # compare pipelines found in directory with pipelines found in database
-        for tuple in pipeline_tuples:
-            pipeline_found = False
-            for pipeline in db_pipelines.copy():
-                if (tuple[0] == pipeline[2]) and (tuple[1] == pipeline[3]):
-                    # pipeline exists in db
-                    pipeline_found = True
-                    break
-            if pipeline_found:
-                valid_pipeline_ids.append(pipeline[0])
-            else:
-                missing_pipeline_tuples.append(tuple)
+        # # compare (py_file, directory) pipelines found in directory with pipelines found in database
+        # for tuple in pipeline_tuples:
+        #     pipeline_found = False
+        #     for pipeline in all_pipelines_from_db.copy():
+        #         if (tuple[0] == pipeline[2]) and (tuple[1] == pipeline[3]):
+        #             # pipeline exists in db
+        #             pipeline_found = True
+        #             break
+        #     if pipeline_found:
+        #         valid_pipeline_ids.append(pipeline[0])
+        #     else:
+        #         missing_pipeline_tuples.append(tuple)
 
         # now create list of pipeline id's that need to be deleted from db
         not_valid_pipeline_ids = []
@@ -69,7 +68,7 @@ class PipelineScanner:
 
         # remove orphaned pipelines (from scheduler and db)
         for id in not_valid_pipeline_ids:
-            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [id]))
+                            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [id]))
 
         # add new pipeline (to scheduler and db)
         for pipeline in missing_pipeline_tuples:
@@ -88,14 +87,14 @@ class PipelineScanner:
 
         # remove 'None' dir or hidden dir
         for dir in dirs.copy():
-            if (dir.name == 'None') or (re.search(r"^\.", dir.name)):
+            if (dir.name == 'None') or (re.search(r"^\.", dir.name)) or (re.search(r"^__", dir.name)):
                 dirs.remove(dir)
             else:
                 pass
 
         pipeline_dir_list = []
         for dir in dirs:
-            pipeline_dir_list.append(dir)
+            pipeline_dir_list.append(dir.absolute())
         return pipeline_dir_list
 
     def _all_py_files(self, current_dir: Path) -> list[Path]:
@@ -111,14 +110,46 @@ class PipelineScanner:
 
         return files
 
-    def _db_pipelines(self) -> list:
+    def _all_db_pipelines(self) -> list[tuple[int, str, str, str, float, int]]:
 
         try:
             db = Pipeline('gluetube.db')
-        except exceptions.dbError:
+        except exception.dbError:
             raise
 
         pipelines = db.all_pipelines()
         db.close()
 
         return pipelines
+
+    # list of tuples representing the pipelines (py_file, directory, py_file_timestamp)
+    def _enumerate_pipelines(self, pipeline_dirs: list[Path]) -> list[tuple[str, str, float]]:
+
+        tuples = []
+        for dir in pipeline_dirs:
+            py_files = self._all_py_files(dir)
+            for py_file in py_files:
+                tuples.append((py_file.name, dir.name, py_file.lstat().st_mtime))
+
+        return tuples
+
+    def _compare_pipelines(self,
+                           enumerated: list[tuple[str, str, float]],
+                           stored: list[tuple[str, str, float]]) -> tuple[list, list]:
+
+        missing_pipeline_tuples = []
+        valid_pipeline_ids = []
+
+        for tuple in enumerated:
+            pipeline_found = False
+            for pipeline in stored.copy():
+                if (tuple[0] == pipeline[2]) and (tuple[1] == pipeline[3]):
+                    # pipeline exists in db
+                    pipeline_found = True
+                    break
+            if pipeline_found:
+                valid_pipeline_ids.append(pipeline[0])
+            else:
+                missing_pipeline_tuples.append(tuple)
+
+        return None  # TODO: change this

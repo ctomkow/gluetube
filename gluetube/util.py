@@ -3,7 +3,7 @@
 
 # local imports
 import config
-import exceptions
+import exception
 
 # python imports
 from pathlib import Path
@@ -44,15 +44,15 @@ def send_rpc_msg_to_daemon(msg: bytes) -> None:
 
     try:
         gt_cfg = config.Gluetube(append_name_to_dir_list('gluetube.cfg', conf_dir()))
-    except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
-        raise exceptions.rpcError(f"RPC call failed. {e}") from e
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise exception.rpcError(f"RPC call failed. {e}") from e
 
     server_address = gt_cfg.socket_file
     if not Path(gt_cfg.socket_file).exists():
-        raise exceptions.rpcError(f"Unix domain socket, {gt_cfg.socket_file}, not found")
+        raise exception.rpcError(f"Unix domain socket, {gt_cfg.socket_file}, not found")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         sock.connect(server_address)
         sock.sendall(msg)
     except ConnectionRefusedError as e:
-        raise exceptions.rpcError(f"RPC call failed. {e}") from e
+        raise exception.rpcError(f"RPC call failed. {e}") from e

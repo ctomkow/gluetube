@@ -4,7 +4,7 @@
 # local imports
 import config
 import util
-import exceptions
+import exception
 
 # python imports
 import sqlite3
@@ -18,8 +18,8 @@ class Database:
 
         try:
             gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-        except (exceptions.ConfigFileParseError, exceptions.ConfigFileNotFoundError) as e:
-            raise exceptions.dbError(f"Failed to initialize database. {e}") from e
+        except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+            raise exception.dbError(f"Failed to initialize database. {e}") from e
         if read_only:
             self._conn = sqlite3.connect(f"file:{gt_cfg.database_dir}/{db_name}?mode=ro", uri=True)
         else:
@@ -67,7 +67,7 @@ class Pipeline(Database):
                 name TEXT UNIQUE,
                 py_name TEXT,
                 dir_name TEXT,
-                py_timestamp TEXT,
+                py_timestamp REAL,
                 latest_run INTEGER
             )""")
         self._conn.commit()
@@ -299,7 +299,7 @@ class Pipeline(Database):
 
     # reads
 
-    def all_pipelines(self) -> list:
+    def all_pipelines(self) -> list[tuple[int, str, str, str, float, int]]:
 
         query = "SELECT id, name, py_name, dir_name, py_timestamp, latest_run FROM pipeline"
         results = self._conn.cursor().execute(query)

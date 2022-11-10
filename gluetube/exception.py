@@ -128,7 +128,7 @@ class rpcError(Exception):
 # auto-discovery execeptions
 
 
-class autodiscoveryError(Exception):
+class AutodiscoveryError(Exception):
 
     """ Base autodiscovery exception. Call a more specific exception that inherits this one"""
 

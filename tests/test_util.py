@@ -2,7 +2,7 @@
 # 2022-09-13
 
 # local imports
-from gluetube import command
+from gluetube import util
 
 # 3rd part imports
 import pytest
@@ -29,7 +29,7 @@ def conf_name():
 
 def test_append_conf_name_to_dir(conf_name, conf_dir):
 
-    result = command._append_conf_name_to_dir(conf_name, conf_dir)
+    result = util.append_name_to_dir_list(conf_name, conf_dir)
     assert result == [
             './test.cfg',
             'cfg/test.cfg',
