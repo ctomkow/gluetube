@@ -5,7 +5,7 @@ todo
 
 ### 0.1.0 roadmap
  - [x] run pipeline in isolated env
- - [ ] autodiscover pipelines (incl. on file change)
+ - [x] autodiscover pipelines
  - [x] tracking status and stages of pipeline
  - [x] shared variables across pipelines
  - [x] pipeline scheduler
@@ -24,7 +24,7 @@ todo
  - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
  - [ ] re-run pipeline if crashed. specify max retries
  - [ ] git pull repo of pipelines into pipeline_dir
- - [ ] option to define schedule in pipeline as code
+ - [ ] option to define (name, schedule) in pipeline (incl. run pipeline on change to get new potential name, schedule etc.)
 
 ### 0.3.0 roadmap
  - [ ] frontend web ui
