@@ -9,6 +9,7 @@ import util
 # python imports
 from pathlib import Path
 import re
+import random
 
 
 # TODO: error handling
@@ -46,7 +47,7 @@ class PipelineScanner:
         for pipeline in missing_fs_pipelines:
             msg = util.craft_rpc_msg('set_new_pipeline',
                                      [
-                                        re.split(r"\.py$", pipeline[0])[0],  # TODO: change this to add random name like docker
+                                        self._generate_unique_pipeline_name(),
                                         pipeline[0],
                                         pipeline[1],
                                         pipeline[2]
@@ -116,6 +117,20 @@ class PipelineScanner:
 
         return pipeline_id
 
+    # TODO: rework how db is read to allow for easy unit tests (e.g. allow test to specify :memory: db type for testing)
+    def _db_pipeline_name_exists(self, name: str) -> bool:
+
+        try:
+            db = Pipeline('gluetube.db')
+        except exception.dbError:
+            raise
+
+        pipeline_id = db.pipeline_id_from_name(name)
+        if pipeline_id:
+            return True
+        else:
+            return False
+
     # list of tuples representing the pipelines (py_file, directory, py_file_timestamp)
     def _enumerate_fs_pipelines(self, pipeline_dirs: list[Path]) -> list[tuple[str, str, float]]:
 
@@ -147,3 +162,38 @@ class PipelineScanner:
             return list(set(a).symmetric_difference(set(b)))
         else:
             return []
+
+    # source: https://www.uibk.ac.at/anglistik/staff/herdina/kursunterlagen/mayhew_a_a_concise_dictionary_of_middle_englishbooksee.org.pdf
+    def _random_middle_english_adjective_and_noun(self) -> str:
+        # TODO: increase adjectives and nouns
+        adjectives = [
+            'admod',  # humble, gentle
+            'aht',  # worthy, valiant
+            'brant',  # steep, high
+            'bel',  # beautiful
+        ]
+        nouns = [
+            'abbay',  # church
+            'alemaunde',  # almond
+            'banere',  # banner
+            'beere',  # beer
+        ]
+
+        adj = adjectives[random.randint(0, len(adjectives)-1)]
+        noun = nouns[random.randint(0, len(nouns)-1)]
+
+        return f"{adj}-{noun}"
+
+    def _generate_unique_pipeline_name(self) -> str:
+
+        name = self._random_middle_english_adjective_and_noun()
+        tries = 1
+
+        while self._db_pipeline_name_exists(name):
+            name = self._random_middle_english_adjective_and_noun()
+            if tries >= 3:
+                name = name + '_' + str(random.randint(0, 999))
+                break
+            tries += 1
+
+        return name

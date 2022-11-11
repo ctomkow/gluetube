@@ -287,7 +287,7 @@ class Pipeline(Database):
     def ls_pipelines(self) -> list:
 
         results = self._conn.cursor().execute("""
-            SELECT pipeline.name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.run_date,
+            SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.run_date,
                    pipeline_schedule.paused, pipeline_run.status, pipeline_run.stage_msg, pipeline_run.end_time
             FROM pipeline
             LEFT JOIN pipeline_schedule
@@ -328,12 +328,12 @@ class Pipeline(Database):
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()
 
-    def pipeline_id_from_name(self, name: str) -> int:
+    def pipeline_id_from_name(self, name: str) -> list:
 
         query = "SELECT id FROM pipeline WHERE name = ?"
         params = (name,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        return results.fetchone()
 
     def pipeline_id_from_tuple(self, py_name: str, dir_name: str) -> int:
 
