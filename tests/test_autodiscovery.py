@@ -62,26 +62,34 @@ class TestPipelineScanner:
 
         assert set(enumerated) == set(test_tuples)
 
-    def test_diff_two_elems_a_diff_b(self, scanner) -> None:
+    def test_cmp_two_elems_a_diff_b(self, scanner) -> None:
 
         list_a = ['a', 'b', 'd']
         list_b = ['c', 'b', 'a']
-        result = scanner._diff_two_elems(list_a, list_b, 'a_diff_b')
+        result = scanner._cmp_two_elems(list_a, list_b, 'a_diff_b')
 
         assert result == ['d']
 
-    def test_diff_two_elems_b_diff_a(self, scanner) -> None:
+    def test_cmp_two_elems_b_diff_a(self, scanner) -> None:
 
         list_a = ['a', 'b', 'd']
         list_b = ['c', 'b', 'a']
-        result = scanner._diff_two_elems(list_a, list_b, 'b_diff_a')
+        result = scanner._cmp_two_elems(list_a, list_b, 'b_diff_a')
 
         assert result == ['c']
 
-    def test_diff_two_elems_diff_both(self, scanner) -> None:
+    def test_cmp_two_elems_diff_both(self, scanner) -> None:
 
         list_a = ['a', 'b', 'd']
         list_b = ['c', 'b', 'a']
-        result = scanner._diff_two_elems(list_a, list_b, 'diff_both')
+        result = scanner._cmp_two_elems(list_a, list_b, 'diff_both')
 
         assert set(result) == set(['c', 'd'])
+
+    def test_cmp_two_elems_same_both(self, scanner) -> None:
+
+        list_a = ['a', 'b', 'd']
+        list_b = ['c', 'b', 'a']
+        result = scanner._cmp_two_elems(list_a, list_b, 'same_both')
+
+        assert set(result) == set(['a', 'b'])

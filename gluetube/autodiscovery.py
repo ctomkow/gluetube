@@ -30,16 +30,27 @@ class PipelineScanner:
     #  4. make RPC calls
     def scan(self) -> None:
 
-        # a tuple (py_file, directory, py_file_timestamp), representing a pipeline
+        # a tuple (py_file, directory, py_file_timestamp), representing a complete pipeline
         pipeline_dirs = self._all_dirs(self.pipeline_dir)
-        fs_pipelines = self._enumerate_fs_pipelines(pipeline_dirs)
+        fs_pipelines_with_timestamp = self._enumerate_fs_pipelines(pipeline_dirs)
+        # tuple (py_file, directory) representing a pipeline
+        fs_pipelines_no_timestamp = [x[:2] for x in fs_pipelines_with_timestamp]
 
-        # a tuple (py_file, directory, py_file_timestamp), representing a pipeline
+        # a tuple (py_file, directory, py_file_timestamp), representing a complete pipeline
         db_data = self._all_db_pipelines()
-        db_pipelines = self._enumerate_db_pipelines(db_data)
+        db_pipelines_with_timestamp = self._enumerate_db_pipelines(db_data)
+        # tuple (py_file, directory) representing a pipeline
+        db_pipelines_no_timestamp = [x[:2] for x in db_pipelines_with_timestamp]
 
-        missing_fs_pipelines = self._diff_two_elems(fs_pipelines, db_pipelines)
-        missing_db_pipelines = self._diff_two_elems(db_pipelines, fs_pipelines)
+        # this consists of ompletely new pipelines on the file system
+        missing_fs_pipelines = self._cmp_two_elems(fs_pipelines_no_timestamp, db_pipelines_no_timestamp)
+
+        # this consists of pipelines in the db that don't exist on the file system anymore
+        missing_db_pipelines = self._cmp_two_elems(db_pipelines_no_timestamp, fs_pipelines_no_timestamp)
+
+        # TODO: use the matching_pipelines tuple (py_file, directory), and compare fs to db timestamps
+        #       if the fs timestamp is newer than the db, then trigger a run of the pipeline to gather facts
+        # matching_pipelines = self._cmp_two_elems(fs_pipelines_no_timestamp, db_pipelines_no_timestamp)
 
         # ### Now make RPC Calls ###
 
@@ -152,14 +163,16 @@ class PipelineScanner:
 
         return enum
 
-    def _diff_two_elems(self, a: list, b: list, diff_type: str = 'a_diff_b') -> list:
+    def _cmp_two_elems(self, a: list, b: list, cmp_type: str = 'a_diff_b') -> list:
 
-        if diff_type == 'a_diff_b':
+        if cmp_type == 'a_diff_b':
             return list(set(a) - (set(b)))
-        elif diff_type == 'b_diff_a':
+        elif cmp_type == 'b_diff_a':
             return list(set(b) - (set(a)))
-        elif diff_type == 'diff_both':
+        elif cmp_type == 'diff_both':
             return list(set(a).symmetric_difference(set(b)))
+        elif cmp_type == 'same_both':
+            return list(set(a).intersection(set(b)))
         else:
             return []
 
