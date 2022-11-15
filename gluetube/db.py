@@ -7,6 +7,7 @@ import exception
 # python imports
 import sqlite3
 from pathlib import Path
+from typing import Union
 
 
 class Database:
@@ -305,7 +306,7 @@ class Pipeline(Database):
 
     # cli commands
 
-    def ls_pipelines(self) -> list:
+    def ls_pipelines(self) -> list[tuple[str, str, int, str, str, int, str, str, str]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.run_date,
@@ -326,7 +327,7 @@ class Pipeline(Database):
         results = self._conn.cursor().execute(query)
         return results.fetchall()
 
-    def all_pipelines_scheduling(self) -> list:
+    def all_pipelines_scheduling(self) -> list[tuple[int, str, str, str, int, str, str, int]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
@@ -338,7 +339,7 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline(self, pipeline_id: int) -> list:
+    def pipeline(self, pipeline_id: int) -> Union[tuple, None]:
 
         query = """
             SELECT id, name, py_name, dir_name, py_timestamp, latest_run
@@ -349,58 +350,87 @@ class Pipeline(Database):
         results = self._conn.cursor().execute(query, params)
         return results.fetchone()
 
-    def pipeline_id_from_name(self, name: str) -> list:
+    def pipeline_id_from_name(self, name: str) -> Union[int, None]:
 
         query = "SELECT id FROM pipeline WHERE name = ?"
         params = (name,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
 
-    def pipeline_id_from_tuple(self, py_name: str, dir_name: str) -> int:
+    def pipeline_id_from_tuple(self, py_name: str, dir_name: str) -> Union[int, None]:
 
         query = "SELECT id FROM pipeline WHERE py_name = ? AND dir_name = ?"
         params = (py_name, dir_name)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
 
-    def pipeline_py_from_name(self, name: str) -> str:
+    def pipeline_py_from_name(self, name: str) -> Union[str, None]:
 
         query = "SELECT py_name FROM pipeline WHERE name = ?"
         params = (name,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
 
-    def pipeline_dir_from_name(self, pipeline_name: str) -> str:
+    def pipeline_dir_from_name(self, pipeline_name: str) -> Union[str, None]:
 
         query = "SELECT dir_name FROM pipeline WHERE name = ?"
         params = (pipeline_name,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
 
-    def pipeline_schedule_run_date(self, schedule_id: int) -> str:
+    def pipeline_schedule_run_date(self, schedule_id: int) -> Union[str, None]:
 
         query = "SELECT run_date FROM pipeline_schedule WHERE id = ?"
         params = (schedule_id,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
 
-    def pipeline_schedule_cron(self, schedule_id: int) -> str:
+    def pipeline_schedule_cron(self, schedule_id: int) -> Union[str, None]:
 
         query = "SELECT cron FROM pipeline_schedule WHERE id = ?"
         params = (schedule_id,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
 
-    def pipeline_schedules_id(self, pipeline_id: int) -> list:
+    def pipeline_schedules_id(self, pipeline_id: int) -> list[int]:
 
         query = "SELECT id FROM pipeline_schedule WHERE pipeline_id = ?"
         params = (pipeline_id,)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchall()
 
-    def pipeline_run_id_by_pipeline_id_and_start_time(self, pipeline_id: int, start_time: str) -> int:
+        return [x[0] for x in results.fetchall()]
+
+    def pipeline_run_id_by_pipeline_id_and_start_time(self, pipeline_id: int, start_time: str) -> Union[int, None]:
 
         query = "SELECT id FROM pipeline_run WHERE pipeline_id = ? AND start_time = ?"
         params = (pipeline_id, start_time)
         results = self._conn.cursor().execute(query, params)
-        return results.fetchone()[0]
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data

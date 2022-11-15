@@ -79,7 +79,7 @@ def pipeline_run(name: str) -> None:
     except exception.dbError:
         raise
 
-    pipeline_id = db.pipeline_id_from_name(name)[0]
+    pipeline_id = db.pipeline_id_from_name(name)
     pipeline_py = db.pipeline_py_from_name(name)
     pipeline_dir = db.pipeline_dir_from_name(name)
     # TODO: also need to inject custom gluetube env vars into instance
@@ -163,7 +163,7 @@ def schedule_new(pipeline_name: str) -> None:
     except exception.dbError:
         raise
 
-    pipeline_id = db.pipeline_id_from_name(pipeline_name)[0]
+    pipeline_id = db.pipeline_id_from_name(pipeline_name)
 
     msg = util.craft_rpc_msg('set_schedule_new', [pipeline_id])
 
