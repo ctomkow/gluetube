@@ -3,7 +3,6 @@
 
 # local imports
 from db import Pipeline, Store
-import config
 import util
 from gluetubed import GluetubeDaemon
 from runner import Runner
@@ -21,24 +20,44 @@ from prettytable import SINGLE_BORDER
 
 def gluetube_init() -> None:
 
-    gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+    try:
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
     Path(gt_cfg.pipeline_dir).mkdir(parents=True, exist_ok=True)
-    Path(gt_cfg.database_dir).mkdir(parents=True, exist_ok=True)
-    db = Pipeline('gluetube.db', read_only=False)
+    Path(gt_cfg.sqlite_dir).mkdir(parents=True, exist_ok=True)
+
+    try:
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
+    except exception.dbError:
+        raise
+
     db.create_schema()
-    db = Store('store.db', read_only=False)
+
+    try:
+        db = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
+    except exception.dbError:
+        raise
+
     print('setup complete.')
 
 
 def gluetube_ls() -> list:
+
+    try:
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
 
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
     table.field_names = [
         'pipeline name', 'file name', 'schedule ID', 'cron', 'run at (IS0 8601)', 'paused', 'status', 'stage message', 'end time (ISO 8601)'
     ]
+
     try:
-        db = Pipeline('gluetube.db')
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
     except exception.dbError:
         raise
 
@@ -51,7 +70,12 @@ def gluetube_ls() -> list:
 def pipeline_run(name: str) -> None:
 
     try:
-        db = Pipeline('gluetube.db')
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
+    try:
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
     except exception.dbError:
         raise
 
@@ -79,9 +103,12 @@ def gluetube_dev(msg: str) -> None:
 
 def gluetube_scan() -> None:
 
-    # TODO: try/except
-    gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-    PipelineScanner(gt_cfg.pipeline_dir).scan()
+    try:
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
+    PipelineScanner(Path(gt_cfg.pipeline_dir), db_dir_path=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name).scan()
 
 
 def daemon_fg(debug: bool) -> None:
@@ -127,7 +154,12 @@ def schedule_at(schedule_id: int, run_date_time: str) -> None:
 def schedule_new(pipeline_name: str) -> None:
 
     try:
-        db = Pipeline('gluetube.db')
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
+    try:
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
     except exception.dbError:
         raise
 

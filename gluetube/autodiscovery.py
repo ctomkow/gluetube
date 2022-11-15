@@ -16,12 +16,21 @@ import random
 class PipelineScanner:
 
     pipeline_dir = None
+    db = None
 
-    def __init__(self, pipeline_dir: str) -> list:
+    def __init__(self, pipeline_dir_path: Path, db_dir_path: Path = Path('.'), db_name: str = 'gluetube.db') -> list:
 
-        self.pipeline_dir = Path(pipeline_dir)
+        self.pipeline_dir = pipeline_dir_path
         if not self.pipeline_dir.exists():
             raise exception.AutodiscoveryError(f"pipeline directory, {self.pipeline_dir}, does not exist")
+
+        try:
+            if db_name == 'memory':
+                self.db = Pipeline(in_memory=True)
+            else:
+                self.db = Pipeline(db_path=Path(db_dir_path, db_name))
+        except exception.dbError:
+            raise
 
     # steps
     #  1. get tuple (py_file, directory, timestamp) of all pipelines on filesystem
@@ -37,7 +46,7 @@ class PipelineScanner:
         fs_pipelines_no_timestamp = [x[:2] for x in fs_pipelines_with_timestamp]
 
         # a tuple (py_file, directory, py_file_timestamp), representing a complete pipeline
-        db_data = self._all_db_pipelines()
+        db_data = self.db.all_pipelines()
         db_pipelines_with_timestamp = self._enumerate_db_pipelines(db_data)
         # tuple (py_file, directory) representing a pipeline
         db_pipelines_no_timestamp = [x[:2] for x in db_pipelines_with_timestamp]
@@ -67,7 +76,7 @@ class PipelineScanner:
 
         # remove orphaned pipelines (from scheduler and db)
         for pipeline in missing_db_pipelines:
-            pipeline_id = self._db_pipeline_id(pipeline[0], pipeline[1])
+            pipeline_id = self.db.pipeline_id_from_tuple(pipeline[0], pipeline[1])
             util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [pipeline_id]))
 
         # TODO: on new timestamp or new pipeline, if option set to run on discovery,
@@ -101,46 +110,6 @@ class PipelineScanner:
                 pass
 
         return files
-
-    # TODO: rework how db is read to allow for easy unit tests (e.g. allow test to specify :memory: db type for testing)
-    def _all_db_pipelines(self) -> list[tuple[int, str, str, str, float, int]]:
-
-        try:
-            db = Pipeline('gluetube.db')
-        except exception.dbError:
-            raise
-
-        pipelines = db.all_pipelines()
-        db.close()
-
-        return pipelines
-
-    # TODO: rework how db is read to allow for easy unit tests (e.g. allow test to specify :memory: db type for testing)
-    def _db_pipeline_id(self, py_name: str, dir_name: str) -> int:
-
-        try:
-            db = Pipeline('gluetube.db')
-        except exception.dbError:
-            raise
-
-        pipeline_id = db.pipeline_id_from_tuple(py_name, dir_name)
-        db.close()
-
-        return pipeline_id
-
-    # TODO: rework how db is read to allow for easy unit tests (e.g. allow test to specify :memory: db type for testing)
-    def _db_pipeline_name_exists(self, name: str) -> bool:
-
-        try:
-            db = Pipeline('gluetube.db')
-        except exception.dbError:
-            raise
-
-        pipeline_id = db.pipeline_id_from_name(name)
-        if pipeline_id:
-            return True
-        else:
-            return False
 
     # list of tuples representing the pipelines (py_file, directory, py_file_timestamp)
     def _enumerate_fs_pipelines(self, pipeline_dirs: list[Path]) -> list[tuple[str, str, float]]:
@@ -202,7 +171,7 @@ class PipelineScanner:
         name = self._random_middle_english_adjective_and_noun()
         tries = 1
 
-        while self._db_pipeline_name_exists(name):
+        while self.db.pipeline_id_from_name(name):
             name = self._random_middle_english_adjective_and_noun()
             if tries >= 3:
                 name = name + '_' + str(random.randint(0, 999))

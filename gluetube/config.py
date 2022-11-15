@@ -41,7 +41,9 @@ class Gluetube(Parser):
         try:
             self.pipeline_dir = self.config['gluetube']['PIPELINE_DIR']
             self.pipeline_scan_interval = self.config['gluetube']['PIPELINE_SCAN_INTERVAL']
-            self.database_dir = self.config['gluetube']['DATABASE_DIR']
+            self.sqlite_dir = self.config['gluetube']['SQLITE_DIR']
+            self.sqlite_app_name = self.config['gluetube']['SQLITE_APP_NAME']
+            self.sqlite_kv_name = self.config['gluetube']['SQLITE_KV_NAME']
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
         except KeyError as e:

@@ -14,6 +14,7 @@ dist/*
 !gluetube/cfg/network_oncall_calendar_sync.cfg
 !test_network_oncall_calendar_sync.cfg
 !gluetube/cfg/gluetube.cfg
+!tests/cfg/gluetube.cfg
 !test_systems.cfg
 tests/__pycache__
 build/package/rpmbuild/BUILD/*

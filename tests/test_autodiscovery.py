@@ -3,6 +3,7 @@
 
 # local imports
 
+from gluetube.db import Pipeline
 from gluetube.autodiscovery import PipelineScanner
 # for some reason, from gluetube.exception import AutodiscoveryError doesn't work, but this does
 #   and if works ONLY if the import is after the PipelineScanner import (where sys.path if modified in __init__.py)
@@ -19,37 +20,43 @@ class TestPipelineScanner:
     @pytest.fixture
     def scanner(self):
 
-        return PipelineScanner(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir'))
+        return PipelineScanner(Path(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir'), db_name='memory')
 
     @pytest.fixture
-    def abspath_test_dir(self) -> Path:
+    def abspath_test_pipeline_dir(self) -> Path:
 
-        return Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir'))
+        return Path(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir')
+
+    @pytest.fixture
+    def db_init(self) -> None:
+
+        db = Pipeline(in_memory=True)
+        db.create_schema()
 
     def test_scanner_no_pipeline_dir(self) -> None:
 
         with pytest.raises(AutodiscoveryError):
-            PipelineScanner(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'no_exists_dir'))
+            PipelineScanner(Path(os.path.dirname(os.path.realpath(__file__)), 'no_exists_dir'), db_name='memory')
 
-    def test_all_dirs(self, scanner, abspath_test_dir) -> None:
+    def test_all_dirs(self, scanner, abspath_test_pipeline_dir) -> None:
 
         dirs = scanner._all_dirs(scanner.pipeline_dir)
-        test_dirs = [Path(f'{abspath_test_dir}/test_2'),
-                     Path(f'{abspath_test_dir}/test_1')]
+        test_dirs = [Path(f'{abspath_test_pipeline_dir}/test_2'),
+                     Path(f'{abspath_test_pipeline_dir}/test_1')]
 
         assert set(dirs) == set(test_dirs)
 
-    def test_all_py_files(self, scanner, abspath_test_dir) -> None:
+    def test_all_py_files(self, scanner, abspath_test_pipeline_dir) -> None:
 
-        py_files = scanner._all_py_files(Path(f"{abspath_test_dir}/test_1"))
-        test_files = [Path(f"{abspath_test_dir}/test_1/example_pipeline1.py"),
-                      Path(f"{abspath_test_dir}/test_1/example_pipeline2.py")]
+        py_files = scanner._all_py_files(Path(f"{abspath_test_pipeline_dir}/test_1"))
+        test_files = [Path(f"{abspath_test_pipeline_dir}/test_1/example_pipeline1.py"),
+                      Path(f"{abspath_test_pipeline_dir}/test_1/example_pipeline2.py")]
 
         assert set(py_files) == set(test_files)
 
-    def test_enumerate_fs_pipelines(self, scanner, abspath_test_dir) -> None:
+    def test_enumerate_fs_pipelines(self, scanner, abspath_test_pipeline_dir) -> None:
 
-        tuples = scanner._enumerate_fs_pipelines([Path(f"{abspath_test_dir}/test_1")])
+        tuples = scanner._enumerate_fs_pipelines([Path(f"{abspath_test_pipeline_dir}/test_1")])
         test_tuples = [('example_pipeline2.py', 'test_1', 1667941329.6938233),
                        ('example_pipeline1.py', 'test_1', 1667941307.4055572)]
 
@@ -93,3 +100,16 @@ class TestPipelineScanner:
         result = scanner._cmp_two_elems(list_a, list_b, 'same_both')
 
         assert set(result) == set(['a', 'b'])
+
+    def test_random_middle_english_adjective_and_noun(self, scanner) -> None:
+
+        result = scanner._random_middle_english_adjective_and_noun()
+        parts = result.split('-', 1)
+
+        assert parts[0].isalpha() and parts[0].islower() and parts[1].isalpha() and parts[1].islower()
+
+    def test_generate_unique_pipeline_name(self, scanner, db_init) -> None:
+
+        scanner._generate_unique_pipeline_name()
+
+        assert True

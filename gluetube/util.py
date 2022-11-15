@@ -32,6 +32,14 @@ def conf_dir() -> list:
     ]
 
 
+def conf() -> config.Gluetube:
+
+    try:
+        return config.Gluetube(append_name_to_dir_list('gluetube.cfg', conf_dir()))
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
+
 def craft_rpc_msg(func: str, params: list) -> bytes:
 
     msg_dict = {'function': func, 'parameters': params}

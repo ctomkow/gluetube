@@ -1,31 +1,28 @@
 # Craig Tomkow
 # 2022-10-14
 
-# local imports
-import config
-import util
-import exception
-
 # python imports
 import sqlite3
+from pathlib import Path
 
 
 class Database:
 
     _conn = None
 
-    def __init__(self, db_name: str, read_only: bool = True) -> None:
+    def __init__(self, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
 
-        try:
-            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-        except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-            raise exception.dbError(f"Failed to initialize database. {e}") from e
-        if read_only:
-            self._conn = sqlite3.connect(f"file:{gt_cfg.database_dir}/{db_name}?mode=ro", uri=True)
-        else:
-            self._conn = sqlite3.connect(f"{gt_cfg.database_dir}/{db_name}")
+        if in_memory:
+            self._conn = sqlite3.connect("file::memory:?cache=shared")
             self._conn.execute('pragma journal_mode=wal;')
             self._conn.execute('pragma foreign_keys=ON;')
+        else:
+            if read_only:
+                self._conn = sqlite3.connect(f"{db_path.absolute().as_uri()}?mode=ro", uri=True)
+            else:
+                self._conn = sqlite3.connect(db_path.absolute().as_uri())
+                self._conn.execute('pragma journal_mode=wal;')
+                self._conn.execute('pragma foreign_keys=ON;')
 
     def close(self) -> None:
 

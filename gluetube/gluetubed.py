@@ -58,12 +58,17 @@ class GluetubeDaemon:
     # must setup everything after the daemon context, otherwise the daemon closes all file descriptors on me
     def _setup(self, debug: bool) -> None:
 
+        try:
+            gt_cfg = util.conf()
+        except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+            raise exception.DaemonError(f"Failed to start daemon. {e}") from e
+
         self._write_pid()
 
         self._debug = debug
-        # setup
+
         try:
-            self._db = Pipeline('gluetube.db', read_only=False)
+            self._db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
         except exception.dbError as e:
             raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 
@@ -73,11 +78,6 @@ class GluetubeDaemon:
                 {'class': 'apscheduler.executors.pool:ThreadPoolExecutor', 'max_workers': '101'}
             }
         )
-
-        try:
-            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
-        except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-            raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 
         # unix socket for IPC. for interfaces (cli, gui) to interact with daemon
         server_address = gt_cfg.socket_file
@@ -206,14 +206,14 @@ class GluetubeDaemon:
     def _schedule_auto_discovery(self, scheduler: BackgroundScheduler) -> None:
 
         try:
-            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+            gt_cfg = util.conf()
         except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
             raise exception.DaemonError(f"Failed to schedule auto-discovery. {e}") from e
 
         interval = IntervalTrigger(seconds=int(gt_cfg.pipeline_scan_interval))
 
         try:
-            pipeline_scanner = PipelineScanner(gt_cfg.pipeline_dir)
+            pipeline_scanner = PipelineScanner(Path(gt_cfg.pipeline_dir), db_dir_path=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name)
         except exception.AutodiscoveryError as e:
             raise exception.DaemonError(f"Failed to initialize pipeline scanner. {e}") from e
 

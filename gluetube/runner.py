@@ -24,7 +24,7 @@ class Runner:
     def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str) -> None:
 
         try:
-            gt_cfg = config.Gluetube(util.append_name_to_dir_list('gluetube.cfg', util.conf_dir()))
+            gt_cfg = util.conf()
         except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
             raise exception.RunnerError(f"Failed to initialize runner. {e}") from e
 
@@ -33,6 +33,8 @@ class Runner:
         self.p_name = pipeline_name
         self.py_file = py_file_name
         self.p_dir = pipeline_dir_name
+        self.db_dir = gt_cfg.sqlite_dir
+        self.db_app_name = gt_cfg.sqlite_app_name
 
     def run(self) -> None:
 
@@ -57,7 +59,7 @@ class Runner:
         sleep(1)  # avoid race condition on db lookup, a hack i know TODO: fix
 
         # get pipeline_run_id, also set the current_run of pipeline to the pipeline_run_id
-        db = Pipeline('gluetube.db')
+        db = Pipeline(db_path=Path(self.db_dir, self.db_app_name))
         pipeline_run_id = db.pipeline_run_id_by_pipeline_id_and_start_time(self.p_id, start_time)
         util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_latest_run', [self.p_id, pipeline_run_id]))
 
