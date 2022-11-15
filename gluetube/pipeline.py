@@ -14,7 +14,7 @@ from sqlite3 import OperationalError
 
 def load_keyvalues(groups: List[str] = []) -> None:
 
-    db_store = Store('store.db')
+    db_store = Store('store.db')  # TODO: refactor
 
     # injecting stored key:values as environment variables into the running pipeline process context
     for group in groups:

@@ -69,19 +69,19 @@ class Pipeline(Database):
 
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline(
-                id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE,
-                py_name TEXT,
-                dir_name TEXT,
-                py_timestamp REAL,
+                id INTEGER PRIMARY KEY NOT NULL,
+                name TEXT UNIQUE NOT NULL CHECK (name != ''),
+                py_name TEXT NOT NULL CHECK (py_name != ''),
+                dir_name TEXT NOT NULL CHECK (dir_name != ''),
+                py_timestamp REAL NOT NULL CHECK (py_timestamp != ''),
                 latest_run INTEGER
             )""")
         self._conn.commit()
 
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline_schedule(
-                id INTEGER PRIMARY KEY,
-                pipeline_id INTEGER,
+                id INTEGER PRIMARY KEY NOT NULL,
+                pipeline_id INTEGER NOT NULL,
                 cron TEXT,
                 run_date TEXT,
                 paused INTEGER,
@@ -105,13 +105,13 @@ class Pipeline(Database):
         # TODO: add column to identify what schedule ran the pipeline
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline_run(
-                id INTEGER PRIMARY KEY,
-                pipeline_id INTEGER,
-                status TEXT,
+                id INTEGER PRIMARY KEY NOT NULL,
+                pipeline_id INTEGER NOT NULL,
+                status TEXT NOT NULL CHECK (status != ''),
                 stage INTEGER,
                 stage_msg TEXT,
                 exit_msg TEXT,
-                start_time TEXT,
+                start_time TEXT NOT NULL CHECK (start_time != ''),
                 end_time TEXT,
                 CONSTRAINT fk_piplinerun_pipeline
                     FOREIGN KEY(pipeline_id)
@@ -122,17 +122,17 @@ class Pipeline(Database):
 
         # pre-optimization, i know i know
         self._conn.cursor().execute("""
-            CREATE INDEX pipeline_id_index ON pipeline_run (pipeline_id)
+            CREATE INDEX IF NOT EXISTS pipeline_id_index ON pipeline_run (pipeline_id)
             """)
         self._conn.commit()
 
         self._conn.cursor().execute("""
-            CREATE INDEX stage_index ON pipeline_run (stage)
+            CREATE INDEX IF NOT EXISTS stage_index ON pipeline_run (stage)
             """)
         self._conn.commit()
 
         self._conn.cursor().execute("""
-            CREATE INDEX start_time_index ON pipeline_run (start_time)
+            CREATE INDEX IF NOT EXISTS start_time_index ON pipeline_run (start_time)
             """)
         self._conn.commit()
 
@@ -140,11 +140,14 @@ class Pipeline(Database):
 
     def insert_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str) -> int:
 
-        query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, NULL)"
-        params = (name, py_name, dir_name, py_timestamp)
-        rowid = self._conn.cursor().execute(query, params).lastrowid
-        self._conn.commit()
-        return rowid
+        try:
+            query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, NULL)"
+            params = (name, py_name, dir_name, py_timestamp)
+            rowid = self._conn.cursor().execute(query, params).lastrowid
+            self._conn.commit()
+            return rowid
+        except sqlite3.IntegrityError as e:
+            raise exception.dbError(f"Failed database insert. {e}") from e
 
     def delete_pipeline(self, pipeline_id: int) -> None:
 
@@ -179,25 +182,34 @@ class Pipeline(Database):
     def insert_pipeline_schedule(self, pipeline_id: int, cron: str = '', run_date: str = '', paused: int = 0,
                                  retry_on_crash: int = 0, retry_num: int = 0, max_retries: int = 0) -> int:
 
-        query = "INSERT INTO pipeline_schedule VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)"
-        params = (pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries)
-        rowid = self._conn.cursor().execute(query, params).lastrowid
-        self._conn.commit()
-        return rowid
+        try:
+            query = "INSERT INTO pipeline_schedule VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)"
+            params = (pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries)
+            rowid = self._conn.cursor().execute(query, params).lastrowid
+            self._conn.commit()
+            return rowid
+        except sqlite3.IntegrityError as e:
+            raise exception.dbError(f"Failed database insert. {e}") from e
 
     def update_pipeline_schedule_cron(self, schedule_id: int, cron: str) -> None:
 
-        query = "UPDATE pipeline_schedule SET cron = ? WHERE id = ?"
-        params = (cron, schedule_id)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
+        try:
+            query = "UPDATE pipeline_schedule SET cron = ? WHERE id = ?"
+            params = (cron, schedule_id)
+            self._conn.cursor().execute(query, params)
+            self._conn.commit()
+        except sqlite3.IntegrityError as e:
+            raise exception.dbError(f"Failed database insert. {e}") from e
 
     def update_pipeline_schedule_run_date(self, schedule_id: int, run_date: str) -> None:
 
-        query = "UPDATE pipeline_schedule SET run_date = ? WHERE id = ?"
-        params = (run_date, schedule_id)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
+        try:
+            query = "UPDATE pipeline_schedule SET run_date = ? WHERE id = ?"
+            params = (run_date, schedule_id)
+            self._conn.cursor().execute(query, params)
+            self._conn.commit()
+        except sqlite3.IntegrityError as e:
+            raise exception.dbError(f"Failed database insert. {e}") from e
 
     def update_pipeline_schedule_paused(self, schedule_id: int, paused: int) -> None:
 
@@ -231,11 +243,14 @@ class Pipeline(Database):
 
     def insert_pipeline_run(self, pipeline_id: int, status: str = '', start_time: str = '') -> int:
 
-        query = "INSERT INTO pipeline_run VALUES (NULL, ?, ?, NULL, NULL, NULL, ?, NULL)"
-        params = (pipeline_id, status, start_time)
-        rowid = self._conn.cursor().execute(query, params).lastrowid
-        self._conn.commit()
-        return rowid
+        try:
+            query = "INSERT INTO pipeline_run VALUES (NULL, ?, ?, NULL, NULL, NULL, ?, NULL)"
+            params = (pipeline_id, status, start_time)
+            rowid = self._conn.cursor().execute(query, params).lastrowid
+            self._conn.commit()
+            return rowid
+        except sqlite3.IntegrityError as e:
+            raise exception.dbError(f"Failed database insert. {e}") from e
 
     def update_pipeline_run_status(self, pipeline_run_id: int, status: str) -> None:
 
