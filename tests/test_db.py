@@ -251,7 +251,11 @@ class TestPipeline:
 
         db.insert_pipeline_schedule(1, '', '2022-12-20 00:00:00', 0, 0, 0, 0)
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '', '2022-12-20 00:00:00', 0, 0, 0, 0)]
@@ -261,7 +265,11 @@ class TestPipeline:
 
         db.insert_pipeline_schedule(1, '* * * * *', '', 0, 0, 0, 0)
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '* * * * *', '', 0, 0, 0, 0)]
@@ -271,7 +279,11 @@ class TestPipeline:
 
         db.insert_pipeline_schedule(1, '', '', 0, 0, 0, 0)
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '', '', 0, 0, 0, 0)]
@@ -289,7 +301,11 @@ class TestPipeline:
 
         db.update_pipeline_schedule_cron(1, '*/5 * * * *')
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '*/5 * * * *', '', 0, 0, 0, 0)]
@@ -305,7 +321,11 @@ class TestPipeline:
 
         db.update_pipeline_schedule_cron(2, '*/5 * * * *')
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '* * * * *', '', 0, 0, 0, 0)]
@@ -315,7 +335,11 @@ class TestPipeline:
 
         db.update_pipeline_schedule_run_date(1, '2023-01-01 00:00:00')
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '', '2023-01-01 00:00:00', 0, 0, 0, 0)]
@@ -331,7 +355,11 @@ class TestPipeline:
 
         db.update_pipeline_schedule_run_date(2, '2025-01-01 00:00:00')
 
-        query = "SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries from pipeline_schedule where id = 1"
+        query = """
+                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                FROM pipeline_schedule
+                WHERE id = 1
+                """
         results = db._conn.cursor().execute(query)
 
         assert results.fetchall() == [(1, '', '2023-01-01 00:00:00', 0, 0, 0, 0)]
