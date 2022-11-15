@@ -4,10 +4,12 @@
 # local imports
 from db import Store
 import util
+import exception
 
 # python imports
 from typing import Any, List
 import os
+from sqlite3 import OperationalError
 
 
 def load_keyvalues(groups: List[str] = []) -> None:
@@ -16,7 +18,10 @@ def load_keyvalues(groups: List[str] = []) -> None:
 
     # injecting stored key:values as environment variables into the running pipeline process context
     for group in groups:
-        key_values = db_store.all_key_values(group)
+        try:
+            key_values = db_store.all_key_values(group)
+        except OperationalError as e:
+            raise exception.PipelineInitializationError() from e
         for kv in key_values:
             os.environ[f"{group}_{kv[0]}"] = kv[1]
 

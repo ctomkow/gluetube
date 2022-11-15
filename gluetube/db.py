@@ -1,6 +1,9 @@
 # Craig Tomkow
 # 2022-10-14
 
+# local imports
+import exception
+
 # python imports
 import sqlite3
 from pathlib import Path
@@ -13,7 +16,7 @@ class Database:
     def __init__(self, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
 
         if in_memory:
-            self._conn = sqlite3.connect("file::memory:?cache=shared")
+            self._conn = sqlite3.connect("file::memory:")
             self._conn.execute('pragma journal_mode=wal;')
             self._conn.execute('pragma foreign_keys=ON;')
         else:
@@ -35,23 +38,29 @@ class Store(Database):
 
         self._conn.cursor().execute(f"""
             CREATE TABLE IF NOT EXISTS {table}(
-                key TEXT UNIQUE,
-                value TEXT
+                key TEXT UNIQUE NOT NULL CHECK (key != ''),
+                value TEXT NOT NULL CHECK (value != '')
             )""")
         self._conn.commit()
 
     def all_key_values(self, table: str) -> list:
 
-        query = f"SELECT * FROM {table}"
-        results = self._conn.cursor().execute(query)
-        return results.fetchall()
+        try:
+            query = f"SELECT * FROM {table}"
+            results = self._conn.cursor().execute(query)
+            return results.fetchall()
+        except sqlite3.OperationalError as e:
+            raise exception.dbError(f"Failed database query. {e}") from e
 
     def insert_key_value(self, table: str, key: str, value: str) -> None:
 
-        query = f"INSERT OR REPLACE INTO {table} VALUES (?, ?)"
-        params = (key, value)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
+        try:
+            query = f"INSERT OR REPLACE INTO {table} VALUES (?, ?)"
+            params = (key, value)
+            self._conn.cursor().execute(query, params)
+            self._conn.commit()
+        except sqlite3.IntegrityError as e:
+            raise exception.dbError(f"Failed database insert. {e}") from e
 
 
 class Pipeline(Database):

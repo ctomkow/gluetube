@@ -3,7 +3,6 @@
 
 # local imports
 
-from gluetube.db import Pipeline
 from gluetube.autodiscovery import PipelineScanner
 # for some reason, from gluetube.exception import AutodiscoveryError doesn't work, but this does
 #   and if works ONLY if the import is after the PipelineScanner import (where sys.path if modified in __init__.py)
@@ -26,12 +25,6 @@ class TestPipelineScanner:
     def abspath_test_pipeline_dir(self) -> Path:
 
         return Path(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir')
-
-    @pytest.fixture
-    def db_init(self) -> None:
-
-        db = Pipeline(in_memory=True)
-        db.create_schema()
 
     def test_scanner_no_pipeline_dir(self) -> None:
 
@@ -108,8 +101,9 @@ class TestPipelineScanner:
 
         assert parts[0].isalpha() and parts[0].islower() and parts[1].isalpha() and parts[1].islower()
 
-    def test_generate_unique_pipeline_name(self, scanner, db_init) -> None:
+    def test_generate_unique_pipeline_name(self, scanner) -> None:
 
+        scanner.db.create_schema()
         scanner._generate_unique_pipeline_name()
 
         assert True
