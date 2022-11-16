@@ -12,15 +12,15 @@ import struct
 import socket
 
 
-def append_name_to_dir_list(name: str, conf_dir: list) -> list:
+def append_name_to_dir_list(name: str, dirs: list) -> list[str]:
 
-    return [s + name for s in conf_dir]
+    return [s + name for s in dirs]
 
 
 # all the possible directories for the cfg files,
 #   depending on how things are packaged and deployed
 #   starts locally, then branches out eventually system-wide
-def conf_dir() -> list:
+def conf_dir() -> list[str]:
 
     return [
         './',
@@ -44,7 +44,7 @@ def conf() -> config.Gluetube:
 
 def craft_rpc_msg(func: str, params: list) -> bytes:
 
-    msg_dict = {'function': func, 'parameters': params}
+    msg_dict = {'func': func, 'params': params}
     msg_str = json.dumps(msg_dict)
     msg_bytes = str.encode(msg_str)
     return struct.pack('>I', len(msg_bytes)) + msg_bytes

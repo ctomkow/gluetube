@@ -4,37 +4,35 @@
 # local imports
 from gluetube import util
 
-# 3rd part imports
-import pytest
+# python imports
+import json
+import struct
 
 
-@pytest.fixture
-def conf_dir():
+def test_append_name_to_dir_list() -> None:
 
-    return [
-            './',
-            'cfg/',
-            '~/.config/gluetube/',
-            '/usr/local/etc/gluetube/',
-            '/etc/opt/gluetube/',
-            '/etc/gluetube/'
-        ]
+    name = 'test_str'
+    dirs = ['dir_one/', 'dir_two/']
 
-
-@pytest.fixture
-def conf_name():
-
-    return 'test.cfg'
-
-
-def test_append_conf_name_to_dir(conf_name, conf_dir):
-
-    result = util.append_name_to_dir_list(conf_name, conf_dir)
+    result = util.append_name_to_dir_list(name, dirs)
     assert result == [
-            './test.cfg',
-            'cfg/test.cfg',
-            '~/.config/gluetube/test.cfg',
-            '/usr/local/etc/gluetube/test.cfg',
-            '/etc/opt/gluetube/test.cfg',
-            '/etc/gluetube/test.cfg'
+            'dir_one/test_str',
+            'dir_two/test_str'
         ]
+
+
+def test_conf_dir() -> None:
+
+    result = util.conf_dir()
+
+    assert all(isinstance(elem, str) for elem in result)
+
+
+def test_craft_rpc_msg() -> None:
+
+    msg_bytes = str.encode(json.dumps({'func': 'myfunc', 'params': ['a', 'b']}))
+    test_payload = struct.pack('>I', len(msg_bytes)) + msg_bytes
+
+    result = util.craft_rpc_msg('myfunc', ['a', 'b'])
+
+    assert result == test_payload

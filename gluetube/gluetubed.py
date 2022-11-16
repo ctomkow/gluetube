@@ -134,8 +134,8 @@ class GluetubeDaemon:
                     logging.error(f"RPC call failed. {e}. not valid json.")
                     continue
             try:
-                func = msg['function']
-                args = msg['parameters']
+                func = msg['func']
+                args = msg['params']
             except (KeyError, TypeError) as e:
                 if debug:
                     logging.exception(f"RPC call failed. {e}")
