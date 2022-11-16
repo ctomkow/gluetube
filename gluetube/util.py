@@ -35,7 +35,9 @@ def conf_dir() -> list:
 def conf() -> config.Gluetube:
 
     try:
-        return config.Gluetube(append_name_to_dir_list('gluetube.cfg', conf_dir()))
+        gt_cfg = config.Gluetube(append_name_to_dir_list('gluetube.cfg', conf_dir()))
+        gt_cfg.parse()
+        return gt_cfg
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
         raise e
 
@@ -51,7 +53,7 @@ def craft_rpc_msg(func: str, params: list) -> bytes:
 def send_rpc_msg_to_daemon(msg: bytes) -> None:
 
     try:
-        gt_cfg = config.Gluetube(append_name_to_dir_list('gluetube.cfg', conf_dir()))
+        gt_cfg = conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
         raise exception.rpcError(f"RPC call failed. {e}") from e
 

@@ -6,35 +6,21 @@ import exception
 
 # python imports
 import configparser
-from abc import ABC, abstractmethod
-
-# 3rd party imports
 
 
-class Parser(ABC):
+class Gluetube:
 
     def __init__(self, conf_locations: list) -> None:
 
         self.config = configparser.ConfigParser()
 
         try:
-            self.filename = self.config.read(conf_locations)
+            filename = self.config.read(conf_locations)
         except configparser.ParsingError as e:
-            raise exception.ConfigFileParseError("Config file reading error.", self.filename) from e
+            raise exception.ConfigFileParseError(f"Config file reading error {conf_locations}") from e
 
-        if not self.filename:
+        if not filename:
             raise exception.ConfigFileNotFoundError(conf_locations)
-
-        self.parse()
-
-    @abstractmethod
-    def parse(self):
-        """Implement this method to parse the configuration file specifics.
-           Access the configuration file elements with self.config"""
-        pass
-
-
-class Gluetube(Parser):
 
     def parse(self) -> None:
 
@@ -47,4 +33,4 @@ class Gluetube(Parser):
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
         except KeyError as e:
-            raise exception.ConfigFileParseError(f"Failed to lookup key, {e}", self.filename) from e
+            raise exception.ConfigFileParseError(f"Failed to lookup key, {e}, in config file") from e

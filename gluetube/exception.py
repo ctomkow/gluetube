@@ -26,8 +26,8 @@ class ConfigFileParseError(ConfigFileBaseError):
 
     """ Raise for errors when parsing the configuration file"""
 
-    def __init__(self, msg: str, cfg_name: str) -> None:
-        msg = f"{msg}. Failed to parse config file: {cfg_name}"
+    def __init__(self, msg: str) -> None:
+        msg = f"{msg}. Failed to parse config file"
         super().__init__(msg)
 
 # Pipeline specific errors

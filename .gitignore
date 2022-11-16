@@ -14,6 +14,8 @@ dist/*
 !gluetube/cfg/network_oncall_calendar_sync.cfg
 !test_network_oncall_calendar_sync.cfg
 !gluetube/cfg/gluetube.cfg
+!tests/cfg/malformed.cfg
+!tests/cfg/bad_key.cfg
 !tests/cfg/gluetube.cfg
 !test_systems.cfg
 tests/__pycache__
