@@ -45,7 +45,7 @@ def gluetube_init() -> None:
     print('setup complete.')
 
 
-def gluetube_ls() -> list:
+def summary() -> PrettyTable:
 
     try:
         gt_cfg = util.conf()
@@ -59,11 +59,11 @@ def gluetube_ls() -> list:
     ]
 
     try:
-        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name))
     except exception.dbError:
         raise
 
-    details = db.ls_pipelines()
+    details = db.summary_pipelines()
     table.add_rows(details)
     return table
 
@@ -77,7 +77,7 @@ def pipeline_run(name: str) -> None:
         raise e
 
     try:
-        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name))
     except exception.dbError:
         raise
 
@@ -91,6 +91,28 @@ def pipeline_run(name: str) -> None:
         raise
 
     runner.run()
+
+
+def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
+    # TODO: remove this config and pass in vars instead
+    try:
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
+    try:
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name))
+    except exception.dbError:
+        raise
+
+    pipeline_id = db.pipeline_id_from_name(pipeline_name)
+
+    msg = util.craft_rpc_msg('set_schedule_new', [pipeline_id])
+
+    try:
+        util.send_rpc_msg_to_daemon(msg, socket_file)
+    except exception.rpcError:
+        raise
 
 
 def gluetube_dev(msg: str, socket_file: Path) -> None:
@@ -153,23 +175,32 @@ def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
         raise
 
 
-def schedule_new(pipeline_name: str, socket_file: Path) -> None:
-    # TODO: remove this config and pass in vars instead
+def store_add(key: str, value: str, socket_file: Path) -> None:
+
+    pass  # TODO: implement
+
+
+def store_delete(key: str, socket_file: Path) -> None:
+
+    pass  # TODO: implement
+
+
+def store_ls() -> PrettyTable:
+
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
         raise e
 
+    table = PrettyTable()
+    table.set_style(SINGLE_BORDER)
+    table.field_names = ['keys']
+
     try:
-        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
+        db = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
     except exception.dbError:
         raise
 
-    pipeline_id = db.pipeline_id_from_name(pipeline_name)
-
-    msg = util.craft_rpc_msg('set_schedule_new', [pipeline_id])
-
-    try:
-        util.send_rpc_msg_to_daemon(msg, socket_file)
-    except exception.rpcError:
-        raise
+    details = db.all_keys('common')
+    table.add_rows(details)
+    return table

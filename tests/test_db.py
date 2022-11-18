@@ -98,6 +98,12 @@ class TestPipeline:
         db.insert_pipeline('test', 'test.py', 'test_dir', '111.1')
 
     @pytest.fixture
+    def pipeline_name(self, db) -> None:
+
+        db.create_schema()
+        db.insert_pipeline('test-name', 'test.py', 'test_dir', '111.1')
+
+    @pytest.fixture
     def schedule_cron(self, db) -> None:
 
         db.create_schema()
@@ -594,9 +600,9 @@ class TestPipeline:
 
     # ##### CLI COMMAND TESTS ##### #
 
-    def test_ls_pipelines(self, db, pipeline, schedule_cron, run) -> None:
+    def test_summary_pipelines(self, db, pipeline, schedule_cron, run) -> None:
 
-        results = db.ls_pipelines()
+        results = db.summary_pipelines()
 
         assert results == [('test', 'test.py', 1, '* * * * *', '', 0, None, None, None)]
         db.close()
@@ -662,9 +668,9 @@ class TestPipeline:
         assert results is None
         db.close()
 
-    def test_pipeline_id_from_name(self, db, pipeline) -> None:
+    def test_pipeline_id_from_name(self, db, pipeline_name) -> None:
 
-        results = db.pipeline_id_from_name('test')
+        results = db.pipeline_id_from_name('test-name')
 
         assert results == 1
         db.close()

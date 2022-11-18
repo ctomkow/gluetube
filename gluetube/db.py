@@ -53,6 +53,15 @@ class Store(Database):
         except sqlite3.OperationalError as e:
             raise exception.dbError(f"Failed database query. {e}") from e
 
+    def all_keys(self, table: str) -> list:
+
+        try:
+            query = f"SELECT key FROM {table}"
+            results = self._conn.cursor().execute(query)
+            return results.fetchall()
+        except sqlite3.OperationalError as e:
+            raise exception.dbError(f"Failed database query. {e}") from e
+
     def value(self, table: str, key: str) -> str:
 
         query = f"SELECT value FROM {table} WHERE key = ?"
@@ -321,7 +330,7 @@ class Pipeline(Database):
 
     # cli commands
 
-    def ls_pipelines(self) -> list[tuple[str, str, int, str, str, int, str, str, str]]:
+    def summary_pipelines(self) -> list[tuple[str, str, int, str, str, int, str, str, str]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.at,
