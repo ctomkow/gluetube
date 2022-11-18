@@ -198,7 +198,7 @@ class GluetubeDaemon:
                 except ValueError as e:  # crontab validation failed
                     logging.error(f"Pipeline, {pipeline[1]}, not scheduled!. crontab incorrect: {pipeline[5]}. {e}")
             elif pipeline[6]:  # if run_date
-                try:  # TODO: validate that ISO 8601 timestamp works for datetrigger
+                try:
                     scheduler.add_job(runner.run, DateTrigger(pipeline[6]), id=str(pipeline[4]))
                 except ValueError as e:  # run_date validation failed
                     logging.error(f"Pipeline, {pipeline[1]}, no scheduled!. run_date incorrect: {pipeline[6]}. {e}")
@@ -313,10 +313,20 @@ class GluetubeDaemon:
     def set_schedule_at(self, schedule_id: int, run_date_time: str,
                         scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
         # TODO: handle when reschedule works but db call fails and vice versa
-        try:
-            scheduler.reschedule_job(str(schedule_id), trigger=DateTrigger(run_date_time))
-        except JobLookupError as e:
-            raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+
+        # need to check if the job exists or not. Once a run-once job has been run, it's autoremoved from scheduler
+        if scheduler.get_job(str(schedule_id)):
+            try:
+                scheduler.reschedule_job(str(schedule_id), trigger=DateTrigger(run_date_time))
+            except JobLookupError as e:
+                raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+        else:
+            pipeline = db.pipeline_from_schedule_id(schedule_id)
+            try:
+                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
+            except exception.RunnerError as e:
+                logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
+            scheduler.add_job(runner.run, trigger=DateTrigger(run_date_time), id=str(schedule_id))
 
         # remove cron if exists, then set run_date in db
         try:

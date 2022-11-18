@@ -350,6 +350,23 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
+    def pipeline_from_schedule_id(self, schedule_id: int) -> Union[tuple[int, str, str, str], None]:
+
+        query = """
+            SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name
+            FROM pipeline
+            LEFT JOIN pipeline_schedule
+            ON pipeline.id = pipeline_schedule.pipeline_id
+            WHERE pipeline_schedule.id = ?;
+        """
+        params = (schedule_id,)
+        results = self._conn.cursor().execute(query, params)
+        data = results.fetchall()
+        if data:
+            return data[0]
+        else:
+            return None
+
     def pipeline(self, pipeline_id: int) -> Union[tuple, None]:
 
         query = """
