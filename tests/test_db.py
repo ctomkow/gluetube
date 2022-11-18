@@ -104,7 +104,7 @@ class TestPipeline:
         db.insert_pipeline_schedule(1, '* * * * *', '', 0, 0, 0, 0)
 
     @pytest.fixture
-    def schedule_rundate(self, db) -> None:
+    def schedule_at(self, db) -> None:
 
         db.create_schema()
         db.insert_pipeline_schedule(1, '', '2023-01-01 00:00:00', 0, 0, 0, 0)
@@ -252,7 +252,7 @@ class TestPipeline:
         db.insert_pipeline_schedule(1, '', '2022-12-20 00:00:00', 0, 0, 0, 0)
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -261,12 +261,12 @@ class TestPipeline:
         assert results.fetchall() == [(1, '', '2022-12-20 00:00:00', 0, 0, 0, 0)]
         db.close()
 
-    def test_insert_pipeline_schedule_empty_rundate(self, db, pipeline) -> None:
+    def test_insert_pipeline_schedule_empty_at(self, db, pipeline) -> None:
 
         db.insert_pipeline_schedule(1, '* * * * *', '', 0, 0, 0, 0)
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -275,12 +275,12 @@ class TestPipeline:
         assert results.fetchall() == [(1, '* * * * *', '', 0, 0, 0, 0)]
         db.close()
 
-    def test_insert_pipeline_schedule_both_empty_cron_and_rundate(self, db, pipeline) -> None:
+    def test_insert_pipeline_schedule_both_empty_cron_and_at(self, db, pipeline) -> None:
 
         db.insert_pipeline_schedule(1, '', '', 0, 0, 0, 0)
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -302,7 +302,7 @@ class TestPipeline:
         db.update_pipeline_schedule_cron(1, '*/5 * * * *')
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -311,7 +311,7 @@ class TestPipeline:
         assert results.fetchall() == [(1, '*/5 * * * *', '', 0, 0, 0, 0)]
         db.close()
 
-    def test_update_pipeline_schedule_cron_existing_rundate(self, db, pipeline, schedule_rundate) -> None:
+    def test_update_pipeline_schedule_cron_existing_at(self, db, pipeline, schedule_at) -> None:
 
         with pytest.raises(dbError):
             db.update_pipeline_schedule_cron(1, '*/5 * * * *')
@@ -322,7 +322,7 @@ class TestPipeline:
         db.update_pipeline_schedule_cron(2, '*/5 * * * *')
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -331,12 +331,12 @@ class TestPipeline:
         assert results.fetchall() == [(1, '* * * * *', '', 0, 0, 0, 0)]
         db.close()
 
-    def test_update_pipeline_schedule_run_date(self, db, pipeline, schedule_rundate) -> None:
+    def test_update_pipeline_schedule_at(self, db, pipeline, schedule_at) -> None:
 
-        db.update_pipeline_schedule_run_date(1, '2023-01-01 00:00:00')
+        db.update_pipeline_schedule_at(1, '2023-01-01 00:00:00')
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -345,18 +345,18 @@ class TestPipeline:
         assert results.fetchall() == [(1, '', '2023-01-01 00:00:00', 0, 0, 0, 0)]
         db.close()
 
-    def test_update_pipeline_schedule_run_date_existing_cron(self, db, pipeline, schedule_cron) -> None:
+    def test_update_pipeline_schedule_at_existing_cron(self, db, pipeline, schedule_cron) -> None:
 
         with pytest.raises(dbError):
-            db.update_pipeline_schedule_run_date(1, '2023-01-01 00:00:00')
+            db.update_pipeline_schedule_at(1, '2023-01-01 00:00:00')
         db.close()
 
-    def test_update_pipeline_schedule_run_date_wrong_id(self, db, pipeline, schedule_rundate) -> None:
+    def test_update_pipeline_schedule_at_wrong_id(self, db, pipeline, schedule_at) -> None:
 
-        db.update_pipeline_schedule_run_date(2, '2025-01-01 00:00:00')
+        db.update_pipeline_schedule_at(2, '2025-01-01 00:00:00')
 
         query = """
-                SELECT pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries
+                SELECT pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries
                 FROM pipeline_schedule
                 WHERE id = 1
                 """
@@ -633,14 +633,14 @@ class TestPipeline:
         assert results == []
         db.close()
 
-    def test_pipeline_from_schedule_id(self, db, pipeline, schedule_rundate) -> None:
+    def test_pipeline_from_schedule_id(self, db, pipeline, schedule_at) -> None:
 
         results = db.pipeline_from_schedule_id(1)
 
         assert results == (1, 'test', 'test.py', 'test_dir')
         db.close()
 
-    def test_pipeline_from_schedule_id_no_id(self, db, pipeline, schedule_rundate) -> None:
+    def test_pipeline_from_schedule_id_no_id(self, db, pipeline, schedule_at) -> None:
 
         results = db.pipeline_from_schedule_id(10)
 
@@ -722,16 +722,16 @@ class TestPipeline:
         assert results is None
         db.close()
 
-    def test_pipeline_schedule_run_date(self, db, pipeline, schedule_rundate) -> None:
+    def test_pipeline_schedule_at(self, db, pipeline, schedule_at) -> None:
 
-        results = db.pipeline_schedule_run_date(1)
+        results = db.pipeline_schedule_at(1)
 
         assert results == '2023-01-01 00:00:00'
         db.close()
 
-    def test_pipeline_schedule_run_date_no_schedule(self, db, pipeline) -> None:
+    def test_pipeline_schedule_at_no_schedule(self, db, pipeline) -> None:
 
-        results = db.pipeline_schedule_run_date(1)
+        results = db.pipeline_schedule_at(1)
 
         assert results is None
         db.close()

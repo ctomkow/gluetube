@@ -17,7 +17,7 @@ todo
  - [ ] hello world tutorial
  - [ ] encrypted key value database
  - [ ] 50%+ test coverage
- - [ ] cli (daemon control, modify scheduling, view pipelines and runs)
+ - [ ] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [ ] pip install (directory mgmt, upgrades, etc)
  
 ### 0.2.0 roadmap
@@ -35,6 +35,9 @@ todo
  - [ ] dynamic webhook url that pipeline can access (for event listener type pipelines)
  - [ ] .rpm
  - [ ] .deb
+
+ ### 0.5.0 roadmap
+ - [ ] cli v2
 
 ## dev env
 

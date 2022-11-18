@@ -302,22 +302,22 @@ class GluetubeDaemon:
         except JobLookupError as e:
             raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
-        # remove run_date if exists, then set cron in db
+        # remove at if exists, then set cron in db
         try:
-            if db.pipeline_schedule_run_date(schedule_id):
-                db.update_pipeline_schedule_run_date(schedule_id, '')
+            if db.pipeline_schedule_at(schedule_id):
+                db.update_pipeline_schedule_at(schedule_id, '')
             db.update_pipeline_schedule_cron(schedule_id, cron)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_schedule_at(self, schedule_id: int, run_date_time: str,
+    def set_schedule_at(self, schedule_id: int, at: str,
                         scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
         # TODO: handle when reschedule works but db call fails and vice versa
 
         # need to check if the job exists or not. Once a run-once job has been run, it's autoremoved from scheduler
         if scheduler.get_job(str(schedule_id)):
             try:
-                scheduler.reschedule_job(str(schedule_id), trigger=DateTrigger(run_date_time))
+                scheduler.reschedule_job(str(schedule_id), trigger=DateTrigger(at))
             except JobLookupError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
@@ -326,13 +326,13 @@ class GluetubeDaemon:
                 runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], schedule_id)
             except exception.RunnerError as e:
                 logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
-            scheduler.add_job(runner.run, trigger=DateTrigger(run_date_time), id=str(schedule_id))
+            scheduler.add_job(runner.run, trigger=DateTrigger(at), id=str(schedule_id))
 
         # remove cron if exists, then set run_date in db
         try:
             if db.pipeline_schedule_cron(schedule_id):
                 db.update_pipeline_schedule_cron(schedule_id, '')
-            db.update_pipeline_schedule_run_date(schedule_id, run_date_time)
+            db.update_pipeline_schedule_at(schedule_id, at)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
@@ -452,11 +452,11 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def _update_pipeline_schedule_run_date(self, schedule_id: int, run_date: str,
-                                           scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
+    def _update_pipeline_schedule_at(self, schedule_id: int, at: str,
+                                     scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:
-            db.update_pipeline_schedule_run_date(schedule_id, run_date)
+            db.update_pipeline_schedule_at(schedule_id, at)
             logging.info(f"Pipeline schedule id, {str(schedule_id)}, updated.")
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e

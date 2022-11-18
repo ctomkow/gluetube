@@ -141,11 +141,11 @@ def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:
         raise
 
 
-def schedule_at(schedule_id: int, run_date_time: str, socket_file: Path) -> None:
+def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
 
     # TODO: validate run_date_time is valid ISO 8601 string
 
-    msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, run_date_time])
+    msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, at])
 
     try:
         util.send_rpc_msg_to_daemon(msg, socket_file)

@@ -95,17 +95,17 @@ class Pipeline(Database):
                 id INTEGER PRIMARY KEY NOT NULL,
                 pipeline_id INTEGER NOT NULL,
                 cron TEXT,
-                run_date TEXT,
+                at TEXT,
                 paused INTEGER,
                 retry_on_crash INTEGER,
                 retry_num INTEGER,
                 max_retries INTEGER,
                 CHECK(
-                    ((cron IS NULL OR cron = '') AND (run_date IS NULL OR run_date = ''))
+                    ((cron IS NULL OR cron = '') AND (at IS NULL OR at = ''))
                     OR
-                    ((cron IS NOT NULL OR cron != '') AND (run_date IS NULL OR run_date = ''))
+                    ((cron IS NOT NULL OR cron != '') AND (at IS NULL OR at = ''))
                     OR
-                    ((cron IS NULL OR cron = '') AND (run_date IS NOT NULL OR run_date != ''))
+                    ((cron IS NULL OR cron = '') AND (at IS NOT NULL OR at != ''))
                 ),
                 CONSTRAINT fk_piplineschedule_pipeline
                     FOREIGN KEY(pipeline_id)
@@ -195,12 +195,12 @@ class Pipeline(Database):
 
     # pipeline_schedule writes
 
-    def insert_pipeline_schedule(self, pipeline_id: int, cron: str = '', run_date: str = '', paused: int = 0,
+    def insert_pipeline_schedule(self, pipeline_id: int, cron: str = '', at: str = '', paused: int = 0,
                                  retry_on_crash: int = 0, retry_num: int = 0, max_retries: int = 0) -> int:
 
         try:
             query = "INSERT INTO pipeline_schedule VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)"
-            params = (pipeline_id, cron, run_date, paused, retry_on_crash, retry_num, max_retries)
+            params = (pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries)
             rowid = self._conn.cursor().execute(query, params).lastrowid
             self._conn.commit()
             return rowid
@@ -217,11 +217,11 @@ class Pipeline(Database):
         except sqlite3.IntegrityError as e:
             raise exception.dbError(f"Failed database insert. {e}") from e
 
-    def update_pipeline_schedule_run_date(self, schedule_id: int, run_date: str) -> None:
+    def update_pipeline_schedule_at(self, schedule_id: int, at: str) -> None:
 
         try:
-            query = "UPDATE pipeline_schedule SET run_date = ? WHERE id = ?"
-            params = (run_date, schedule_id)
+            query = "UPDATE pipeline_schedule SET at = ? WHERE id = ?"
+            params = (at, schedule_id)
             self._conn.cursor().execute(query, params)
             self._conn.commit()
         except sqlite3.IntegrityError as e:
@@ -324,13 +324,15 @@ class Pipeline(Database):
     def ls_pipelines(self) -> list[tuple[str, str, int, str, str, int, str, str, str]]:
 
         results = self._conn.cursor().execute("""
-            SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.run_date,
+            SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.at,
                    pipeline_schedule.paused, pipeline_run.status, pipeline_run.stage_msg, pipeline_run.end_time
             FROM pipeline
             LEFT JOIN pipeline_schedule
             ON pipeline.id = pipeline_schedule.pipeline_id
             LEFT JOIN pipeline_run
-            ON pipeline.id = pipeline_run.pipeline_id AND pipeline.latest_run = pipeline_run.id;
+            ON pipeline.id = pipeline_run.pipeline_id
+                AND pipeline_schedule.id = pipeline_run.schedule_id
+                AND pipeline.latest_run = pipeline_run.id;
         """)
         return results.fetchall()
 
@@ -347,7 +349,7 @@ class Pipeline(Database):
         results = self._conn.cursor().execute("""
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
                    pipeline_schedule.id, pipeline_schedule.cron,
-                   pipeline_schedule.run_date, pipeline_schedule.paused
+                   pipeline_schedule.at, pipeline_schedule.paused
             FROM pipeline
             LEFT JOIN pipeline_schedule
             ON pipeline.id = pipeline_schedule.pipeline_id;
@@ -426,9 +428,9 @@ class Pipeline(Database):
         else:
             return data
 
-    def pipeline_schedule_run_date(self, schedule_id: int) -> Union[str, None]:
+    def pipeline_schedule_at(self, schedule_id: int) -> Union[str, None]:
 
-        query = "SELECT run_date FROM pipeline_schedule WHERE id = ?"
+        query = "SELECT at FROM pipeline_schedule WHERE id = ?"
         params = (schedule_id,)
         results = self._conn.cursor().execute(query, params)
         data = results.fetchone()
