@@ -6,6 +6,7 @@
 # local imports
 import command
 import exception
+import util
 
 # python imports
 import logging
@@ -22,6 +23,7 @@ class Gluetube:
 
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
+        gt_cfg = util.conf()
         os.chdir(Path(__file__).parent.resolve())
 
         # gluetube level
@@ -38,7 +40,7 @@ class Gluetube:
                 raise SystemExit(1)
         elif args.dev:
             try:
-                command.gluetube_dev(args.dev)
+                command.gluetube_dev(args.dev, Path(gt_cfg.socket_file))
             except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
@@ -73,11 +75,11 @@ class Gluetube:
         elif 'sub_cmd_schedule' in args:  # gluetube schedule sub-command level
             try:
                 if args.cron:
-                    command.schedule_cron(args.id, args.cron)
+                    command.schedule_cron(args.id, args.cron, Path(gt_cfg.socket_file))
                 elif args.at:
-                    command.schedule_at(args.id, args.at)
+                    command.schedule_at(args.id, args.at, Path(gt_cfg.socket_file))
                 elif args.new:
-                    command.schedule_new(args.new)
+                    command.schedule_new(args.new, Path(gt_cfg.socket_file))
             except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")

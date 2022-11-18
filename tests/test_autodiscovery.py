@@ -4,6 +4,7 @@
 # local imports
 
 from gluetube.autodiscovery import PipelineScanner
+from gluetube.db import Pipeline
 # for some reason, from gluetube.exception import AutodiscoveryError doesn't work, but this does
 #   and if works ONLY if the import is after the PipelineScanner import (where sys.path if modified in __init__.py)
 from exception import AutodiscoveryError
@@ -19,7 +20,7 @@ class TestPipelineScanner:
     @pytest.fixture
     def scanner(self):
 
-        return PipelineScanner(Path(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir'), db_name='memory')
+        return PipelineScanner(Path(os.path.dirname(os.path.realpath(__file__)), 'pipeline_dir'), Path('sock'), db_name='memory')
 
     @pytest.fixture
     def abspath_test_pipeline_dir(self) -> Path:
@@ -29,7 +30,7 @@ class TestPipelineScanner:
     def test_scanner_no_pipeline_dir(self) -> None:
 
         with pytest.raises(AutodiscoveryError):
-            PipelineScanner(Path(os.path.dirname(os.path.realpath(__file__)), 'no_exists_dir'), db_name='memory')
+            PipelineScanner(Path(os.path.dirname(os.path.realpath(__file__)), 'no_exists_dir'), Path('sock'), db_name='memory')
 
     def test_all_dirs(self, scanner, abspath_test_pipeline_dir) -> None:
 
@@ -51,7 +52,7 @@ class TestPipelineScanner:
 
         tuples = scanner._enumerate_fs_pipelines([Path(f"{abspath_test_pipeline_dir}/test_1")])
         test_tuples = [('example_pipeline2.py', 'test_1', 1667941329.6938233),
-                       ('example_pipeline1.py', 'test_1', 1667941307.4055572)]
+                       ('example_pipeline1.py', 'test_1', 1668716080.3641396)]
 
         assert set(tuples) == set(test_tuples)
 
@@ -103,7 +104,8 @@ class TestPipelineScanner:
 
     def test_generate_unique_pipeline_name(self, scanner) -> None:
 
-        scanner.db.create_schema()
-        scanner._generate_unique_pipeline_name()
+        db = Pipeline(in_memory=True)
+        db.create_schema()
+        scanner._generate_unique_pipeline_name(db)
 
         assert True

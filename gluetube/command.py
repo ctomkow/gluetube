@@ -27,6 +27,7 @@ def gluetube_init() -> None:
 
     Path(gt_cfg.pipeline_dir).mkdir(parents=True, exist_ok=True)
     Path(gt_cfg.sqlite_dir).mkdir(parents=True, exist_ok=True)
+    Path(gt_cfg.runner_tmp_dir).mkdir(parents=True, exist_ok=True)
 
     try:
         db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
@@ -37,6 +38,7 @@ def gluetube_init() -> None:
 
     try:
         db = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
+        db.create_table('common')
     except exception.dbError:
         raise
 
@@ -91,12 +93,12 @@ def pipeline_run(name: str) -> None:
     runner.run()
 
 
-def gluetube_dev(msg: str) -> None:
+def gluetube_dev(msg: str, socket_file: Path) -> None:
 
     msg_bytes = str.encode(msg)
     msg = struct.pack('>I', len(msg_bytes)) + msg_bytes
     try:
-        util.send_rpc_msg_to_daemon(msg)
+        util.send_rpc_msg_to_daemon(msg, socket_file)
     except exception.rpcError:
         raise
 
@@ -108,7 +110,7 @@ def gluetube_scan() -> None:
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
         raise e
 
-    PipelineScanner(Path(gt_cfg.pipeline_dir), db_dir_path=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name).scan()
+    PipelineScanner(Path(gt_cfg.pipeline_dir), db_dir=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name).scan()
 
 
 def daemon_fg(debug: bool) -> None:
@@ -127,32 +129,32 @@ def daemon_bg(debug: bool) -> None:
         raise
 
 
-def schedule_cron(schedule_id: int, cron: str) -> None:
+def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:
 
     # TODO: basic cron validation
 
     msg = util.craft_rpc_msg('set_schedule_cron', [schedule_id, cron])
 
     try:
-        util.send_rpc_msg_to_daemon(msg)
+        util.send_rpc_msg_to_daemon(msg, socket_file)
     except exception.rpcError:
         raise
 
 
-def schedule_at(schedule_id: int, run_date_time: str) -> None:
+def schedule_at(schedule_id: int, run_date_time: str, socket_file: Path) -> None:
 
     # TODO: validate run_date_time is valid ISO 8601 string
 
     msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, run_date_time])
 
     try:
-        util.send_rpc_msg_to_daemon(msg)
+        util.send_rpc_msg_to_daemon(msg, socket_file)
     except exception.rpcError:
         raise
 
 
-def schedule_new(pipeline_name: str) -> None:
-
+def schedule_new(pipeline_name: str, socket_file: Path) -> None:
+    # TODO: remove this config and pass in vars instead
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
@@ -168,6 +170,6 @@ def schedule_new(pipeline_name: str) -> None:
     msg = util.craft_rpc_msg('set_schedule_new', [pipeline_id])
 
     try:
-        util.send_rpc_msg_to_daemon(msg)
+        util.send_rpc_msg_to_daemon(msg, socket_file)
     except exception.rpcError:
         raise

@@ -6,7 +6,6 @@ import logging
 import sqlite3
 from db import Pipeline
 from runner import Runner
-import config
 import util
 import exception
 from autodiscovery import PipelineScanner
@@ -19,6 +18,7 @@ import json
 from json.decoder import JSONDecodeError
 import os
 from datetime import datetime
+import sys
 
 # 3rd party imports
 import daemon
@@ -58,14 +58,19 @@ class GluetubeDaemon:
     # must setup everything after the daemon context, otherwise the daemon closes all file descriptors on me
     def _setup(self, debug: bool) -> None:
 
+        if debug:
+            sys.tracebacklimit = 1
+        else:
+            sys.tracebacklimit = 0
+
+        self._debug = debug
+
         try:
             gt_cfg = util.conf()
         except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
             raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 
         self._write_pid()
-
-        self._debug = debug
 
         try:
             self._db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
@@ -213,7 +218,7 @@ class GluetubeDaemon:
         interval = IntervalTrigger(seconds=int(gt_cfg.pipeline_scan_interval))
 
         try:
-            pipeline_scanner = PipelineScanner(Path(gt_cfg.pipeline_dir), db_dir_path=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name)
+            pipeline_scanner = PipelineScanner(Path(gt_cfg.pipeline_dir), Path(gt_cfg.socket_file), db_dir=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name)
         except exception.AutodiscoveryError as e:
             raise exception.DaemonError(f"Failed to initialize pipeline scanner. {e}") from e
 

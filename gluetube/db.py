@@ -53,6 +53,17 @@ class Store(Database):
         except sqlite3.OperationalError as e:
             raise exception.dbError(f"Failed database query. {e}") from e
 
+    def value(self, table: str, key: str) -> str:
+
+        query = f"SELECT value FROM {table} WHERE key = ?"
+        params = (key,)
+        results = self._conn.cursor().execute(query, params)
+        data = results.fetchone()
+        if data:
+            return data[0]
+        else:
+            return data
+
     def insert_key_value(self, table: str, key: str, value: str) -> None:
 
         try:

@@ -2,10 +2,9 @@
 # 2022-10-18
 
 # local imports
-import config
 import util
 import exception
-from db import Pipeline
+from db import Pipeline, Store
 
 # python imports
 import logging
@@ -17,6 +16,9 @@ from venv import EnvBuilder
 from pathlib import Path
 import datetime
 from time import sleep
+
+# 3rd party imports
+from jinja2 import Template, FileSystemLoader, Environment, meta
 
 
 class Runner:
@@ -35,6 +37,9 @@ class Runner:
         self.p_dir = pipeline_dir_name
         self.db_dir = gt_cfg.sqlite_dir
         self.db_app_name = gt_cfg.sqlite_app_name
+        self.db_kv_name = gt_cfg.sqlite_kv_name
+        self.runner_tmp_dir = gt_cfg.runner_tmp_dir
+        self.socket_file = Path(gt_cfg.socket_file)
 
     def run(self) -> None:
 
@@ -51,42 +56,54 @@ class Runner:
 
         # ### THE 'START' of the pipeline ###
 
+        # substitute variables in pipeline with database elements and write new tmp pipeline py file
+        env = _load_template_env(Path(dir_abs_path))
+        template = _jinja_template(env, self.py_file)
+        variables = _all_variables_in_template(env, Path(dir_abs_path), self.py_file)
+        db_kv = Store(db_path=Path(self.db_dir, self.db_kv_name))
+        pairs = _variable_value_pairs_for_template(variables, db_kv)
+        pipeline_as_a_string = template.render(pairs)
+        # new_py_file = _write_tmp_python_file(pipeline_as_a_string, Path(self.runner_tmp_dir))
+
         # get current time and create a new db entry for current run
         start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         logging.info(f"Pipeline: {self.p_name}, started.")
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]))
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]), self.socket_file)
 
         sleep(1)  # avoid race condition on db lookup, a hack i know TODO: fix
 
         # get pipeline_run_id, also set the current_run of pipeline to the pipeline_run_id
         db = Pipeline(db_path=Path(self.db_dir, self.db_app_name))
         pipeline_run_id = db.pipeline_run_id_by_pipeline_id_and_start_time(self.p_id, start_time)
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_latest_run', [self.p_id, pipeline_run_id]))
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_latest_run', [self.p_id, pipeline_run_id]), self.socket_file)
 
         # modified environment variables of pipeline for gluetube system
         gluetube_env_vars = os.environ.copy()
         gluetube_env_vars['PIPELINE_RUN_ID'] = str(pipeline_run_id)
+        gluetube_env_vars['SOCKET_FILE'] = self.socket_file.resolve().as_posix()
 
         # Finally, actually fork the pipeline process
         try:
             # TODO: for DEV pipeline mode, print to logging, for normal operation, silence it.
             # for line in subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars).split('\n'):
             #     print(line)
-            subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars)
+            subprocess.check_output([".venv/bin/python", "-uc", pipeline_as_a_string], text=True, cwd=dir_abs_path, env=gluetube_env_vars)
         except CalledProcessError as e:
             util.send_rpc_msg_to_daemon(
                 util.craft_rpc_msg(
                     'set_pipeline_run_finished',
                     [pipeline_run_id, 'crashed', e.output, datetime.datetime.now(datetime.timezone.utc).isoformat()]
-                )
+                ),
+                self.socket_file
             )
-            raise
+            raise exception.RunnerError(f'Pipeline {self.p_name} crashed.') from None  # don't leak things
 
         util.send_rpc_msg_to_daemon(
             util.craft_rpc_msg(
                 'set_pipeline_run_finished',
                 [pipeline_run_id, 'finished', '', datetime.datetime.now(datetime.timezone.utc).isoformat()]
-            )
+            ),
+            self.socket_file
         )
         logging.info(f"Pipeline: {self.p_name}, finished successfully.")
 
@@ -128,3 +145,43 @@ def _install_pipeline_requirements(dir: str) -> None:
         subprocess.check_output(['.venv/bin/pip', 'install', '-r', 'requirements.txt'], cwd=dir)
     except CalledProcessError:
         raise
+
+
+def _load_template_env(directory: Path) -> Environment:
+
+    file_loader = FileSystemLoader(directory.resolve().as_posix())
+    env = Environment(loader=file_loader)
+    return env
+
+
+def _jinja_template(env: Environment, file: str) -> Template:
+
+    template = env.get_template(file)
+    return template
+
+
+def _all_variables_in_template(env: Environment, directory: Path, file: str) -> set[str]:
+
+    data = Path(directory.resolve(), file).read_text()
+    ast = env.parse(data)
+    variables = meta.find_undeclared_variables(ast)
+    return variables
+
+
+def _variable_value_pairs_for_template(variables: set[str], db: Store) -> dict:
+
+    pairs = {}
+    for var in variables:
+        value = db.value('common', var)
+        if not value:
+            continue
+        pairs[var] = f"'{value}'"
+
+    return pairs
+
+
+def _write_tmp_python_file(python_code: str, tmp_dir: Path) -> Path:
+
+    py_file = Path(tmp_dir, 'my_random_pyfile.py')
+    py_file.write_text(python_code)
+    return py_file

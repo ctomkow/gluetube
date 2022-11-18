@@ -50,16 +50,11 @@ def craft_rpc_msg(func: str, params: list) -> bytes:
     return struct.pack('>I', len(msg_bytes)) + msg_bytes
 
 
-def send_rpc_msg_to_daemon(msg: bytes) -> None:
+def send_rpc_msg_to_daemon(msg: bytes, socket_file: Path) -> None:
 
-    try:
-        gt_cfg = conf()
-    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-        raise exception.rpcError(f"RPC call failed. {e}") from e
-
-    server_address = gt_cfg.socket_file
-    if not Path(gt_cfg.socket_file).exists():
-        raise exception.rpcError(f"Unix domain socket, {gt_cfg.socket_file}, not found")
+    server_address = socket_file.resolve().as_posix()
+    if not socket_file.exists():
+        raise exception.rpcError(f"Unix domain socket, {socket_file.resolve().as_posix()}, not found")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         sock.connect(server_address)

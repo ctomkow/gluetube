@@ -16,21 +16,19 @@ import random
 class PipelineScanner:
 
     pipeline_dir = None
+    db_name = None
+    db_dir_path = None
     db = None
 
-    def __init__(self, pipeline_dir_path: Path, db_dir_path: Path = Path('.'), db_name: str = 'gluetube.db') -> list:
+    def __init__(self, pipeline_dir_path: Path, socket_file: Path, db_dir: Path = Path('.'), db_name: str = 'gluetube.db') -> list:
 
         self.pipeline_dir = pipeline_dir_path
         if not self.pipeline_dir.exists():
             raise exception.AutodiscoveryError(f"pipeline directory, {self.pipeline_dir}, does not exist")
 
-        try:
-            if db_name == 'memory':
-                self.db = Pipeline(in_memory=True)
-            else:
-                self.db = Pipeline(db_path=Path(db_dir_path, db_name))
-        except exception.dbError:
-            raise
+        self.socket_file = socket_file
+        self.db_name = db_name
+        self.db_dir_path = db_dir
 
     # steps
     #  1. get tuple (py_file, directory, timestamp) of all pipelines on filesystem
@@ -38,6 +36,9 @@ class PipelineScanner:
     #  3. compare; generate list of pipelines to be deleted and to be added
     #  4. make RPC calls
     def scan(self) -> None:
+
+        # must do this within the scan method not the constructor, otherwise the db obj gets created in another thread
+        self.db = self._connect_to_db(self.db_name, self.db_dir_path)
 
         # a tuple (py_file, directory, py_file_timestamp), representing a complete pipeline
         pipeline_dirs = self._all_dirs(self.pipeline_dir)
@@ -67,20 +68,32 @@ class PipelineScanner:
         for pipeline in missing_fs_pipelines:
             msg = util.craft_rpc_msg('set_new_pipeline',
                                      [
-                                        self._generate_unique_pipeline_name(),
+                                        self._generate_unique_pipeline_name(self.db),
                                         pipeline[0],
                                         pipeline[1],
-                                        pipeline[2]
+                                        0.0
                                      ])
-            util.send_rpc_msg_to_daemon(msg)
+            util.send_rpc_msg_to_daemon(msg, self.socket_file)
 
         # remove orphaned pipelines (from scheduler and db)
         for pipeline in missing_db_pipelines:
             pipeline_id = self.db.pipeline_id_from_tuple(pipeline[0], pipeline[1])
-            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [pipeline_id]))
+            util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [pipeline_id]), self.socket_file)
 
         # TODO: on new timestamp or new pipeline, if option set to run on discovery,
         #       use a 'set' RPC call to also have scheduler run right away
+
+    def _connect_to_db(self, name: str, dir_path: Path) -> Pipeline:
+        try:
+            if name == 'memory':
+                db = Pipeline(in_memory=True)
+            else:
+                db = Pipeline(db_path=Path(dir_path, name))
+        except exception.dbError:
+            raise
+
+        return db
+
 
     def _all_dirs(self, current_dir: Path) -> list[Path]:
 
@@ -166,12 +179,12 @@ class PipelineScanner:
 
         return f"{adj}-{noun}"
 
-    def _generate_unique_pipeline_name(self) -> str:
+    def _generate_unique_pipeline_name(self, db: Pipeline) -> str:
 
         name = self._random_middle_english_adjective_and_noun()
         tries = 1
 
-        while self.db.pipeline_id_from_name(name):
+        while db.pipeline_id_from_name(name):
             name = self._random_middle_english_adjective_and_noun()
             if tries >= 3:
                 name = name + '_' + str(random.randint(0, 999))
