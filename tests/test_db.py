@@ -113,7 +113,7 @@ class TestPipeline:
     def run(self, db) -> None:
 
         db.create_schema()
-        db.insert_pipeline_run(1, 'running', '2023-01-01 00:00:00')
+        db.insert_pipeline_run(1, 1, 'running', '2023-01-01 00:00:00')
 
     def test_create_schema(self, db) -> None:
 
@@ -460,17 +460,17 @@ class TestPipeline:
             db.insert_pipeline_run(1, '', '')
         db.close()
 
-    def test_insert_pipeline_run(self, db, pipeline) -> None:
+    def test_insert_pipeline_run(self, db, pipeline, schedule_cron) -> None:
 
-        db.insert_pipeline_run(1, 'running', '2023-01-01 00:00:00')
+        db.insert_pipeline_run(1, 1, 'running', '2023-01-01 00:00:00')
 
-        query = "SELECT pipeline_id, status, start_time FROM pipeline_run WHERE id = 1"
+        query = "SELECT pipeline_id, schedule_id, status, start_time FROM pipeline_run WHERE id = 1"
         results = db._conn.cursor().execute(query)
 
-        assert results.fetchone() == (1, 'running', '2023-01-01 00:00:00')
+        assert results.fetchone() == (1, 1, 'running', '2023-01-01 00:00:00')
         db.close()
 
-    def test_update_pipeline_run_status(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_status(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_status(1, 'crashed')
 
@@ -480,7 +480,7 @@ class TestPipeline:
         assert results.fetchone() == ('crashed',)
         db.close()
 
-    def test_update_pipeline_run_status_wrong_id(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_status_wrong_id(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_status(2, 'crashed')
 
@@ -490,7 +490,7 @@ class TestPipeline:
         assert results.fetchone() == ('running',)
         db.close()
 
-    def test_update_pipeline_run_stage(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_stage(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_stage(1, 4)
 
@@ -500,7 +500,7 @@ class TestPipeline:
         assert results.fetchone() == (4,)
         db.close()
 
-    def test_update_pipeline_run_stage_wrong_id(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_stage_wrong_id(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_stage(2, 4)
 
@@ -510,7 +510,7 @@ class TestPipeline:
         assert results.fetchone()[0] is None
         db.close()
 
-    def test_update_pipeline_run_stage_msg(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_stage_msg(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_stage_msg(1, 'this is a stage msg')
 
@@ -520,7 +520,7 @@ class TestPipeline:
         assert results.fetchone() == ('this is a stage msg',)
         db.close()
 
-    def test_update_pipeline_run_stage_msg_wrong_id(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_stage_msg_wrong_id(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_stage_msg(2, 'this is a stage msg')
 
@@ -530,7 +530,7 @@ class TestPipeline:
         assert results.fetchone()[0] is None
         db.close()
 
-    def test_update_pipeline_run_exit_msg(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_exit_msg(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_exit_msg(1, 'this is a exit msg')
 
@@ -540,7 +540,7 @@ class TestPipeline:
         assert results.fetchone() == ('this is a exit msg',)
         db.close()
 
-    def test_update_pipeline_run_exit_msg_wrong_id(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_exit_msg_wrong_id(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_exit_msg(2, 'this is a exit msg')
 
@@ -550,7 +550,7 @@ class TestPipeline:
         assert results.fetchone()[0] is None
         db.close()
 
-    def test_update_pipeline_run_end_time(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_end_time(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_end_time(1, '2025-01-01 00:00:00')
 
@@ -560,7 +560,7 @@ class TestPipeline:
         assert results.fetchone() == ('2025-01-01 00:00:00',)
         db.close()
 
-    def test_update_pipeline_run_end_time_wrong_id(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_end_time_wrong_id(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_end_time(2, '2025-01-01 00:00:00')
 
@@ -572,7 +572,7 @@ class TestPipeline:
 
     # ##### COMPOUND WRITE TESTS ##### #
 
-    def test_update_pipeline_run_stage_and_stage_msg(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_stage_and_stage_msg(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_stage_and_stage_msg(1, 4, 'this is a stage msg')
 
@@ -582,7 +582,7 @@ class TestPipeline:
         assert results.fetchone() == (4, 'this is a stage msg')
         db.close()
 
-    def test_update_pipeline_run_status_exit_msg_end_time(self, db, pipeline, run) -> None:
+    def test_update_pipeline_run_status_exit_msg_end_time(self, db, pipeline, schedule_cron, run) -> None:
 
         db.update_pipeline_run_status_exit_msg_end_time(1, 'crashed', 'stacktrace', '2025-03-03 00:00:00')
 
@@ -764,7 +764,7 @@ class TestPipeline:
         assert results == []
         db.close()
 
-    def test_pipeline_run_id_by_pipeline_id_and_start_time(self, db, pipeline, run) -> None:
+    def test_pipeline_run_id_by_pipeline_id_and_start_time(self, db, pipeline, schedule_cron, run) -> None:
 
         results = db.pipeline_run_id_by_pipeline_id_and_start_time(1, '2023-01-01 00:00:00')
 

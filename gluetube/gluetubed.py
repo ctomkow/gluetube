@@ -187,7 +187,7 @@ class GluetubeDaemon:
                 continue
 
             try:
-                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
+                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], pipeline[4])
             except exception.RunnerError as e:
                 logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
                 continue
@@ -253,7 +253,7 @@ class GluetubeDaemon:
         # TODO: db call to gluetube app table, get if run_immediately is set or not
 
         try:
-            runner = Runner(pipeline_id, name, py_name, dir_name)
+            runner = Runner(pipeline_id, name, py_name, dir_name, pipeline_schedule_id)
         except exception.RunnerError as e:
             raise exception.DaemonError(f"{e}. Not scheduling pipeline, {name}, runner creation failed.") from e
 
@@ -323,7 +323,7 @@ class GluetubeDaemon:
         else:
             pipeline = db.pipeline_from_schedule_id(schedule_id)
             try:
-                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
+                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], schedule_id)
             except exception.RunnerError as e:
                 logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
             scheduler.add_job(runner.run, trigger=DateTrigger(run_date_time), id=str(schedule_id))
@@ -344,25 +344,25 @@ class GluetubeDaemon:
     # TODO: handle when reschedule works but db call fails and vice versa
     def set_schedule_new(self, pipeline_id: int, scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
-        pipeline = db.pipeline(pipeline_id)
-
-        try:
-            runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3])
-        except exception.RunnerError as e:
-            logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
-
         try:
             schedule_id = db.insert_pipeline_schedule(pipeline_id)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
+        pipeline = db.pipeline(pipeline_id)
+
+        try:
+            runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], schedule_id)
+        except exception.RunnerError as e:
+            logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
+
         scheduler.add_job(runner.run, DateTrigger(datetime(2999, 1, 1)), id=str(schedule_id))
 
-    def set_pipeline_run(self, pipeline_id: int, status: str, start_time: str,
+    def set_pipeline_run(self, pipeline_id: int, schedule_id: int, status: str, start_time: str,
                          scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:
-            db.insert_pipeline_run(pipeline_id, status, start_time)
+            db.insert_pipeline_run(pipeline_id, schedule_id, status, start_time)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
@@ -499,11 +499,11 @@ class GluetubeDaemon:
 
     # pipeline_run individual db writes
 
-    def _insert_pipeline_run(self, pipeline_id: int, status: str, start_time: str,
+    def _insert_pipeline_run(self, pipeline_id: int, schedule_id: int, status: str, start_time: str,
                              scheduler: BackgroundScheduler = None, db: Pipeline = None) -> None:
 
         try:
-            db.insert_pipeline_run(pipeline_id, status, start_time)
+            db.insert_pipeline_run(pipeline_id, schedule_id, status, start_time)
             logging.info(f"Pipeline run for pipeline id: {str(pipeline_id)}, inserted.")
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e

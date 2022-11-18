@@ -114,11 +114,11 @@ class Pipeline(Database):
             )""")
         self._conn.commit()
 
-        # TODO: add column to identify what schedule ran the pipeline
         self._conn.cursor().execute("""
             CREATE TABLE IF NOT EXISTS pipeline_run(
                 id INTEGER PRIMARY KEY NOT NULL,
                 pipeline_id INTEGER NOT NULL,
+                schedule_id INTEGER NOT NULL,
                 status TEXT NOT NULL CHECK (status != ''),
                 stage INTEGER,
                 stage_msg TEXT,
@@ -128,6 +128,10 @@ class Pipeline(Database):
                 CONSTRAINT fk_piplinerun_pipeline
                     FOREIGN KEY(pipeline_id)
                     REFERENCES pipeline(id)
+                    ON DELETE CASCADE,
+                CONSTRAINT fk_pipelinerun_pipeline_schedule
+                    FOREIGN KEY(schedule_id)
+                    REFERENCES pipeline_schedule(id)
                     ON DELETE CASCADE
             )""")
         self._conn.commit()
@@ -253,11 +257,11 @@ class Pipeline(Database):
 
     # pipeline_run writes
 
-    def insert_pipeline_run(self, pipeline_id: int, status: str = '', start_time: str = '') -> int:
+    def insert_pipeline_run(self, pipeline_id: int, schedule_id: int, status: str = '', start_time: str = '') -> int:
 
         try:
-            query = "INSERT INTO pipeline_run VALUES (NULL, ?, ?, NULL, NULL, NULL, ?, NULL)"
-            params = (pipeline_id, status, start_time)
+            query = "INSERT INTO pipeline_run VALUES (NULL, ?, ?, ?, NULL, NULL, NULL, ?, NULL)"
+            params = (pipeline_id, schedule_id, status, start_time)
             rowid = self._conn.cursor().execute(query, params).lastrowid
             self._conn.commit()
             return rowid

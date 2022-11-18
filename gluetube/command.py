@@ -86,7 +86,7 @@ def pipeline_run(name: str) -> None:
     pipeline_dir = db.pipeline_dir_from_name(name)
     # TODO: also need to inject custom gluetube env vars into instance
     try:
-        runner = Runner(pipeline_id, name, pipeline_py, pipeline_dir)
+        runner = Runner(pipeline_id, name, pipeline_py, pipeline_dir, 0)  # TODO: handle manual run with no schedule
     except exception.RunnerError:
         raise
 

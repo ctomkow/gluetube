@@ -23,7 +23,7 @@ from jinja2 import Template, FileSystemLoader, Environment, meta
 
 class Runner:
 
-    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str) -> None:
+    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str, schedule_id: int) -> None:
 
         try:
             gt_cfg = util.conf()
@@ -35,6 +35,7 @@ class Runner:
         self.p_name = pipeline_name
         self.py_file = py_file_name
         self.p_dir = pipeline_dir_name
+        self.s_id = schedule_id
         self.db_dir = gt_cfg.sqlite_dir
         self.db_app_name = gt_cfg.sqlite_app_name
         self.db_kv_name = gt_cfg.sqlite_kv_name
@@ -68,7 +69,7 @@ class Runner:
         # get current time and create a new db entry for current run
         start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         logging.info(f"Pipeline: {self.p_name}, started.")
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, 'running', start_time]), self.socket_file)
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, self.s_id, 'running', start_time]), self.socket_file)
 
         sleep(1)  # avoid race condition on db lookup, a hack i know TODO: fix
 
