@@ -85,9 +85,6 @@ class Runner:
 
         # Finally, actually fork the pipeline process
         try:
-            # TODO: for DEV pipeline mode, print to logging, for normal operation, silence it.
-            # for line in subprocess.check_output([".venv/bin/python", self.py_file], stderr=STDOUT, text=True, cwd=dir_abs_path, env=gluetube_env_vars).split('\n'):
-            #     print(line)
             subprocess.check_output([".venv/bin/python", "-uc", pipeline_as_a_string], text=True, cwd=dir_abs_path, env=gluetube_env_vars)
         except CalledProcessError as e:
             util.send_rpc_msg_to_daemon(

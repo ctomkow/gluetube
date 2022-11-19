@@ -58,10 +58,6 @@ class PipelineScanner:
         # this consists of pipelines in the db that don't exist on the file system anymore
         missing_db_pipelines = self._cmp_two_elems(db_pipelines_no_timestamp, fs_pipelines_no_timestamp)
 
-        # TODO: use the matching_pipelines tuple (py_file, directory), and compare fs to db timestamps
-        #       if the fs timestamp is newer than the db, then trigger a run of the pipeline to gather facts
-        # matching_pipelines = self._cmp_two_elems(fs_pipelines_no_timestamp, db_pipelines_no_timestamp)
-
         # ### Now make RPC Calls ###
 
         # add new pipeline (to scheduler and db)
@@ -79,9 +75,6 @@ class PipelineScanner:
         for pipeline in missing_db_pipelines:
             pipeline_id = self.db.pipeline_id_from_tuple(pipeline[0], pipeline[1])
             util.send_rpc_msg_to_daemon(util.craft_rpc_msg('delete_pipeline', [pipeline_id]), self.socket_file)
-
-        # TODO: on new timestamp or new pipeline, if option set to run on discovery,
-        #       use a 'set' RPC call to also have scheduler run right away
 
     def _connect_to_db(self, name: str, dir_path: Path) -> Pipeline:
         try:

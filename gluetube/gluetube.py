@@ -13,6 +13,7 @@ import logging
 import argparse
 import os
 from pathlib import Path
+from getpass import getpass
 
 # 3rd party imports
 
@@ -86,9 +87,9 @@ class Gluetube:
         elif 'sub_cmd_store' in args:  # gluetube store sub-command level
             try:
                 if args.add:
-                    command.store_add(args.KEY, args.VALUE, Path(gt_cfg.socket_file))
+                    command.store_add(args.sub_cmd_store, getpass('value:'), Path(gt_cfg.socket_file))
                 elif args.delete:
-                    command.store_del(args.KEY, Path(gt_cfg.socket_file))
+                    command.store_delete(args.sub_cmd_store, Path(gt_cfg.socket_file))
                 elif args.ls:
                     print(command.store_ls())
             except exception.rpcError as e:
@@ -142,9 +143,8 @@ class Gluetube:
         store = sub_parser.add_parser('store', description='add and remove key value pairs')
         store.add_argument('sub_cmd_store', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
         store.add_argument('KEY', action='store', type=str, nargs='?', help='name of key to act on')
-        store.add_argument('VALUE', action='store', type=str, nargs='?', help='the value to be stored with the key')
         store_group = store.add_mutually_exclusive_group()
-        store_group.add_argument('--add', action='store_true', help='add the key and value pair to the encrypted database')
+        store_group.add_argument('--add', action='store_true', help='add the key to the encrypted database (prompted for value)')
         store_group.add_argument('--delete', action='store_true', help='delete the key from the encrypted database')
         store_group.add_argument('--ls', action='store_true', help='list all keys in the encrypted database')
 
