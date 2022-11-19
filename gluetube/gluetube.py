@@ -38,9 +38,6 @@ class Gluetube:
                 else:
                     logging.error(f"Is the daemon running? {e}")
                 raise SystemExit(1)
-        elif args.scan:
-            # TODO: try/except
-            command.gluetube_scan()
         elif 'sub_cmd_summary' in args:  # gluetube summary sub-command level
             try:
                 print(command.summary())
@@ -77,9 +74,9 @@ class Gluetube:
         elif 'sub_cmd_schedule' in args:  # gluetube schedule sub-command level
             try:
                 if args.cron:
-                    command.schedule_cron(args.id, args.cron, Path(gt_cfg.socket_file))
+                    command.schedule_cron(args.ID[0], args.cron, Path(gt_cfg.socket_file))
                 elif args.at:
-                    command.schedule_at(args.id, args.at, Path(gt_cfg.socket_file))
+                    command.schedule_at(args.ID[0], args.at, Path(gt_cfg.socket_file))
             except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
@@ -113,9 +110,8 @@ class Gluetube:
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
-        group.add_argument('-i', '--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
+        group.add_argument('--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
         group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
-        group.add_argument('--scan', action='store_true', help='manually scan pipeline directory for pipelines')
 
         sub_parser = parser.add_subparsers()
 
@@ -132,12 +128,13 @@ class Gluetube:
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
         pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
         pipeline.add_argument('NAME', action='store', type=str, nargs=1, help='name of pipeline to act on')
-        pipeline.add_argument('-r', '--run', action='store_true', help='manually run the pipeline once')
-        pipeline.add_argument('--schedule', action='store_true', help='create a new blank pipeline schedule')
+        pipeline_group = pipeline.add_mutually_exclusive_group()
+        pipeline_group.add_argument('--run', action='store_true', help='manually run the pipeline once')
+        pipeline_group.add_argument('--schedule', action='store_true', help='create a new blank pipeline schedule')
 
         schedule = sub_parser.add_parser('schedule', description='perform actions and updates to existing schedules')
         schedule.add_argument('sub_cmd_schedule', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
-        schedule.add_argument('--id', action='store', metavar='ID', type=int, help='id of schedule to modify')
+        schedule.add_argument('ID', action='store', type=int, nargs=1, help='id of schedule to modify')
         schedule_group = schedule.add_mutually_exclusive_group()
         schedule_group.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
         schedule_group.add_argument('--at', action='store', metavar='AT', help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")

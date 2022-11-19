@@ -10,7 +10,7 @@ todo
  - [x] shared variables across pipelines
  - [x] pipeline scheduler
  - [x] cron scheduling
- - [ ] at scheduling (run once at date time)
+ - [x] at scheduling (run once at date time)
  - [x] gluetube daemon
  - [x] sqlite database schema
  - [ ] dockerfile

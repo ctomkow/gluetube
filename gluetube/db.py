@@ -83,6 +83,13 @@ class Store(Database):
         except sqlite3.IntegrityError as e:
             raise exception.dbError(f"Failed database insert. {e}") from e
 
+    def delete_key(self, table: str, key: str) -> None:
+
+        query = f"DELETE FROM {table} WHERE key = ?"
+        params = (key,)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
 
 class Pipeline(Database):
 

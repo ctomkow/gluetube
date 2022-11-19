@@ -66,7 +66,7 @@ class PipelineScanner:
 
         # add new pipeline (to scheduler and db)
         for pipeline in missing_fs_pipelines:
-            msg = util.craft_rpc_msg('set_new_pipeline',
+            msg = util.craft_rpc_msg('set_pipeline',
                                      [
                                         self._generate_unique_pipeline_name(self.db),
                                         pipeline[0],

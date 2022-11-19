@@ -7,7 +7,6 @@ import util
 from gluetubed import GluetubeDaemon
 from runner import Runner
 import exception
-from autodiscovery import PipelineScanner
 
 # python imports
 from pathlib import Path
@@ -68,7 +67,6 @@ def summary() -> PrettyTable:
     return table
 
 
-# TODO: change this to making an RPC call to the daemon to trigger the scheduler to run pipeline once, immediately
 def pipeline_run(name: str) -> None:
 
     try:
@@ -91,6 +89,13 @@ def pipeline_run(name: str) -> None:
         raise
 
     runner.run()
+    TODO: work in progress
+    # msg = util.craft_rpc_msg('set_pipeline', [key])
+
+    # try:
+    #     util.send_rpc_msg_to_daemon(msg, socket_file)
+    # except exception.rpcError:
+    #     raise
 
 
 def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
@@ -107,7 +112,7 @@ def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
 
     pipeline_id = db.pipeline_id_from_name(pipeline_name)
 
-    msg = util.craft_rpc_msg('set_schedule_new', [pipeline_id])
+    msg = util.craft_rpc_msg('set_schedule', [pipeline_id])
 
     try:
         util.send_rpc_msg_to_daemon(msg, socket_file)
@@ -123,16 +128,6 @@ def gluetube_dev(msg: str, socket_file: Path) -> None:
         util.send_rpc_msg_to_daemon(msg, socket_file)
     except exception.rpcError:
         raise
-
-
-def gluetube_scan() -> None:
-
-    try:
-        gt_cfg = util.conf()
-    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-        raise e
-
-    PipelineScanner(Path(gt_cfg.pipeline_dir), db_dir=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name).scan()
 
 
 def daemon_fg(debug: bool) -> None:
@@ -177,12 +172,22 @@ def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
 
 def store_add(key: str, value: str, socket_file: Path) -> None:
 
-    pass  # TODO: implement
+    msg = util.craft_rpc_msg('set_key_value', [key, value])
+
+    try:
+        util.send_rpc_msg_to_daemon(msg, socket_file)
+    except exception.rpcError:
+        raise
 
 
 def store_delete(key: str, socket_file: Path) -> None:
 
-    pass  # TODO: implement
+    msg = util.craft_rpc_msg('delete_key', [key])
+
+    try:
+        util.send_rpc_msg_to_daemon(msg, socket_file)
+    except exception.rpcError:
+        raise
 
 
 def store_ls() -> PrettyTable:
