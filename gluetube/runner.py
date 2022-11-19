@@ -76,7 +76,7 @@ class Runner:
         # get pipeline_run_id, also set the current_run of pipeline to the pipeline_run_id
         db = Pipeline(db_path=Path(self.db_dir, self.db_app_name))
         pipeline_run_id = db.pipeline_run_id_by_pipeline_id_and_start_time(self.p_id, start_time)
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_latest_run', [self.p_id, pipeline_run_id]), self.socket_file)
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_schedule_latest_run', [self.s_id, pipeline_run_id]), self.socket_file)
 
         # modified environment variables of pipeline for gluetube system
         gluetube_env_vars = os.environ.copy()

@@ -357,11 +357,11 @@ class GluetubeDaemon:
 
     # ##### database writes
 
-    def set_pipeline_latest_run(self, pipeline_id: int, pipeline_run_id: int,
+    def set_schedule_latest_run(self, schedule_id: int, pipeline_run_id: int,
                                 scheduler: BackgroundScheduler = None, db_p: Pipeline = None, db_s: Store = None) -> None:
 
         try:
-            db_p.update_pipeline_latest_run(pipeline_id, pipeline_run_id)
+            db_p.update_pipeline_schedule_latest_run(schedule_id, pipeline_run_id)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 

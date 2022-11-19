@@ -101,8 +101,7 @@ class Pipeline(Database):
                 name TEXT UNIQUE NOT NULL CHECK (name != ''),
                 py_name TEXT NOT NULL CHECK (py_name != ''),
                 dir_name TEXT NOT NULL CHECK (dir_name != ''),
-                py_timestamp REAL NOT NULL CHECK (py_timestamp != ''),
-                latest_run INTEGER
+                py_timestamp REAL NOT NULL CHECK (py_timestamp != '')
             )""")
         self._conn.commit()
 
@@ -116,6 +115,7 @@ class Pipeline(Database):
                 retry_on_crash INTEGER,
                 retry_num INTEGER,
                 max_retries INTEGER,
+                latest_run INTEGER,
                 CHECK(
                     ((cron IS NULL OR cron = '') AND (at IS NULL OR at = ''))
                     OR
@@ -173,7 +173,7 @@ class Pipeline(Database):
     def insert_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str) -> int:
 
         try:
-            query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?, NULL)"
+            query = "INSERT INTO pipeline VALUES (NULL, ?, ?, ?, ?)"
             params = (name, py_name, dir_name, py_timestamp)
             rowid = self._conn.cursor().execute(query, params).lastrowid
             self._conn.commit()
@@ -202,20 +202,13 @@ class Pipeline(Database):
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_latest_run(self, pipeline_id: int, run_id: int) -> None:
-
-        query = "UPDATE pipeline SET latest_run = ? WHERE id = ?"
-        params = (run_id, pipeline_id)
-        self._conn.cursor().execute(query, params)
-        self._conn.commit()
-
     # pipeline_schedule writes
 
     def insert_pipeline_schedule(self, pipeline_id: int, cron: str = '', at: str = '', paused: int = 0,
                                  retry_on_crash: int = 0, retry_num: int = 0, max_retries: int = 0) -> int:
 
         try:
-            query = "INSERT INTO pipeline_schedule VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)"
+            query = "INSERT INTO pipeline_schedule VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, NULL)"
             params = (pipeline_id, cron, at, paused, retry_on_crash, retry_num, max_retries)
             rowid = self._conn.cursor().execute(query, params).lastrowid
             self._conn.commit()
@@ -268,6 +261,13 @@ class Pipeline(Database):
 
         query = "UPDATE pipeline_schedule SET max_retries = ? WHERE id = ?"
         params = (max_retries, schedule_id)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
+    def update_pipeline_schedule_latest_run(self, schedule_id: int, run_id: int) -> None:
+
+        query = "UPDATE pipeline_schedule SET latest_run = ? WHERE id = ?"
+        params = (run_id, schedule_id)
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
@@ -346,9 +346,7 @@ class Pipeline(Database):
             LEFT JOIN pipeline_schedule
             ON pipeline.id = pipeline_schedule.pipeline_id
             LEFT JOIN pipeline_run
-            ON pipeline.id = pipeline_run.pipeline_id
-                AND pipeline_schedule.id = pipeline_run.schedule_id
-                AND pipeline.latest_run = pipeline_run.id;
+            ON pipeline_schedule.latest_run = pipeline_run.id
         """)
         return results.fetchall()
 
@@ -356,7 +354,7 @@ class Pipeline(Database):
 
     def all_pipelines(self) -> list[tuple[int, str, str, str, float, int]]:
 
-        query = "SELECT id, name, py_name, dir_name, py_timestamp, latest_run FROM pipeline"
+        query = "SELECT id, name, py_name, dir_name, py_timestamp FROM pipeline"
         results = self._conn.cursor().execute(query)
         return results.fetchall()
 
@@ -392,7 +390,7 @@ class Pipeline(Database):
     def pipeline(self, pipeline_id: int) -> Union[tuple, None]:
 
         query = """
-            SELECT id, name, py_name, dir_name, py_timestamp, latest_run
+            SELECT id, name, py_name, dir_name, py_timestamp
             FROM pipeline
             WHERE id = ?
             """

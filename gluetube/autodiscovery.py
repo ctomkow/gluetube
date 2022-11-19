@@ -136,7 +136,7 @@ class PipelineScanner:
         return tuples
 
     def _enumerate_db_pipelines(self,
-                                pipeline_data: list[tuple[int, str, str, str, float, int]]) -> list[tuple[str, str, float]]:
+                                pipeline_data: list[tuple[int, str, str, str, float]]) -> list[tuple[str, str, float]]:
 
         enum = []
 

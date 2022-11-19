@@ -220,22 +220,6 @@ class TestPipeline:
 
         assert results.fetchone()[0] == 111.1
 
-    def test_update_pipeline_latest_run(self, db, pipeline) -> None:
-
-        db.update_pipeline_latest_run(1, 5)
-        query = "SELECT latest_run from pipeline where id = 1"
-        results = db._conn.cursor().execute(query)
-
-        assert results.fetchone()[0] == 5
-
-    def test_update_pipeline_latest_run_wrong_id(self, db, pipeline) -> None:
-
-        db.update_pipeline_latest_run(2, 5)
-        query = "SELECT latest_run from pipeline where id = 1"
-        results = db._conn.cursor().execute(query)
-
-        assert results.fetchone()[0] is None
-
     # ##### PIPELINE SCHEDULE TABLE TESTS ##### #
 
     def test_insert_pipeline_schedule_return_id(self, db, pipeline) -> None:
@@ -443,6 +427,22 @@ class TestPipeline:
 
         assert results.fetchone()[0] == 0
 
+    def test_update_pipeline_schedule_latest_run(self, db, pipeline, schedule_cron) -> None:
+
+        db.update_pipeline_schedule_latest_run(1, 5)
+        query = "SELECT latest_run from pipeline_schedule where id = 1"
+        results = db._conn.cursor().execute(query)
+
+        assert results.fetchone()[0] == 5
+
+    def test_update_pipeline_schedule_latest_run_wrong_id(self, db, pipeline, schedule_cron) -> None:
+
+        db.update_pipeline_schedule_latest_run(2, 5)
+        query = "SELECT latest_run from pipeline_schedule where id = 1"
+        results = db._conn.cursor().execute(query)
+
+        assert results.fetchone()[0] is None
+
     # ##### PIPELINE RUN TABLE TESTS ##### #
 
     def test_insert_pipeline_run_return_id(self, db, pipeline) -> None:
@@ -613,7 +613,7 @@ class TestPipeline:
 
         results = db.all_pipelines()
 
-        assert results == [(1, 'test', 'test.py', 'test_dir', 111.1, None)]
+        assert results == [(1, 'test', 'test.py', 'test_dir', 111.1)]
         db.close()
 
     def test_all_pipelines_no_pipelines(self, db) -> None:
@@ -657,7 +657,7 @@ class TestPipeline:
 
         results = db.pipeline(1)
 
-        assert results == (1, 'test', 'test.py', 'test_dir', 111.1, None)
+        assert results == (1, 'test', 'test.py', 'test_dir', 111.1)
         db.close()
 
     def test_pipeline_no_pipeline(self, db) -> None:
