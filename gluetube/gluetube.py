@@ -61,9 +61,7 @@ class Gluetube:
                 raise SystemExit(1)
         elif 'sub_cmd_pipeline' in args:  # gluetube pipeline sub-command level
             try:
-                if args.run:
-                    command.pipeline_run(args.NAME[0])
-                elif args.schedule:
+                if args.schedule:
                     command.pipeline_schedule(args.NAME[0], Path(gt_cfg.socket_file))
             except (exception.dbError, exception.RunnerError) as e:
                 if args.debug:
@@ -77,6 +75,8 @@ class Gluetube:
                     command.schedule_cron(args.ID[0], args.cron, Path(gt_cfg.socket_file))
                 elif args.at:
                     command.schedule_at(args.ID[0], args.at, Path(gt_cfg.socket_file))
+                elif args.now:
+                    command.schedule_now(args.ID[0], Path(gt_cfg.socket_file))
             except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
@@ -129,7 +129,6 @@ class Gluetube:
         pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
         pipeline.add_argument('NAME', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline_group = pipeline.add_mutually_exclusive_group()
-        pipeline_group.add_argument('--run', action='store_true', help='manually run the pipeline once')
         pipeline_group.add_argument('--schedule', action='store_true', help='create a new blank pipeline schedule')
 
         schedule = sub_parser.add_parser('schedule', description='perform actions and updates to existing schedules')
@@ -138,6 +137,7 @@ class Gluetube:
         schedule_group = schedule.add_mutually_exclusive_group()
         schedule_group.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
         schedule_group.add_argument('--at', action='store', metavar='AT', help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
+        schedule_group.add_argument('--now', action='store_true', help="set the schedule to run immediately")
 
         store = sub_parser.add_parser('store', description='add and remove key value pairs')
         store.add_argument('sub_cmd_store', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd

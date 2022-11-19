@@ -67,37 +67,6 @@ def summary() -> PrettyTable:
     return table
 
 
-def pipeline_run(name: str) -> None:
-
-    try:
-        gt_cfg = util.conf()
-    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-        raise e
-
-    try:
-        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name))
-    except exception.dbError:
-        raise
-
-    pipeline_id = db.pipeline_id_from_name(name)
-    pipeline_py = db.pipeline_py_from_name(name)
-    pipeline_dir = db.pipeline_dir_from_name(name)
-    # TODO: also need to inject custom gluetube env vars into instance
-    try:
-        runner = Runner(pipeline_id, name, pipeline_py, pipeline_dir, 0)  # TODO: handle manual run with no schedule
-    except exception.RunnerError:
-        raise
-
-    runner.run()
-    TODO: work in progress
-    # msg = util.craft_rpc_msg('set_pipeline', [key])
-
-    # try:
-    #     util.send_rpc_msg_to_daemon(msg, socket_file)
-    # except exception.rpcError:
-    #     raise
-
-
 def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
     # TODO: remove this config and pass in vars instead
     try:
@@ -163,6 +132,16 @@ def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
     # TODO: validate run_date_time is valid ISO 8601 string
 
     msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, at])
+
+    try:
+        util.send_rpc_msg_to_daemon(msg, socket_file)
+    except exception.rpcError:
+        raise
+
+
+def schedule_now(schedule_id: int, socket_file: Path) -> None:
+
+    msg = util.craft_rpc_msg('set_schedule_now', [schedule_id])
 
     try:
         util.send_rpc_msg_to_daemon(msg, socket_file)
