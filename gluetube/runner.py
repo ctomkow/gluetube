@@ -39,12 +39,11 @@ class Runner:
         self.db_dir = gt_cfg.sqlite_dir
         self.db_app_name = gt_cfg.sqlite_app_name
         self.db_kv_name = gt_cfg.sqlite_kv_name
-        self.runner_tmp_dir = gt_cfg.runner_tmp_dir
         self.socket_file = Path(gt_cfg.socket_file)
 
     def run(self) -> None:
 
-        dir_abs_path = f"{self.base_dir}/{self.p_dir}"
+        dir_abs_path = Path(Path(self.base_dir).resolve() / self.p_dir).resolve().as_posix()
 
         if not _venv_exists(f"{dir_abs_path}/.venv"):
             _create_venv(dir_abs_path)
@@ -64,7 +63,6 @@ class Runner:
         db_kv = Store(db_path=Path(self.db_dir, self.db_kv_name))
         pairs = _variable_value_pairs_for_template(variables, db_kv)
         pipeline_as_a_string = template.render(pairs)
-        # new_py_file = _write_tmp_python_file(pipeline_as_a_string, Path(self.runner_tmp_dir))
 
         # get current time and create a new db entry for current run
         start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()

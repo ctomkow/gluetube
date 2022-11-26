@@ -13,18 +13,19 @@ todo
  - [x] at scheduling (run once at date time)
  - [x] gluetube daemon
  - [x] sqlite database schema
- - [ ] dockerfile
+ - [x] dockerfile
  - [ ] hello world tutorial
  - [ ] encrypted key value database
  - [ ] 50%+ test coverage
  - [ ] cli v1 (daemon control, modify scheduling, view pipelines and runs)
- - [ ] pip install (directory mgmt, upgrades, etc)
+ - [x] pip install (directory mgmt, upgrades, etc)
  
 ### 0.2.0 roadmap
  - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
  - [ ] re-run pipeline if crashed. specify max retries
  - [ ] git pull repo of pipelines into pipeline_dir
  - [ ] option to define (name, schedule) in pipeline (incl. run pipeline on change to get new potential name, schedule etc.)
+ - [ ] a 'gluetube pipeline --clean' and 'gluetube pipeline --cleanall' to remove .venv's that are made
 
 ### 0.3.0 roadmap
  - [ ] frontend web ui
@@ -39,6 +40,29 @@ todo
  ### 0.5.0 roadmap
  - [ ] cli v2
 
+## installation
+> adduser gluetube
+
+> pip install --user gluetube
+
+> gluetube --configure
+
+> gluetube --initdb
+
+> gluetube daemon --background
+
+> gluetube daemon --stop
+
+todo: systemd unit file (when rpm/deb is built, it will include a unit file since the packages are run as root)
+
+## usage
+
+> gluetube daemon --background
+
+> gluetube summary
+
+> gluetube --help
+
 ## dev env
 
 docker build -t gluetube-dev:0.1.0 -f dockerfile.dev .
@@ -50,7 +74,7 @@ docker run -itd --name gluetube-dev --net=host -v ~/code/gluetube/gluetube:/home
 docker exec -it gluetube bash
 > cd ~/.local/lib/python3.10/site-packages/gluetube
 
-> ./gluetube.py --init
+> ./gluetube.py --initdb
 
 ## design
 

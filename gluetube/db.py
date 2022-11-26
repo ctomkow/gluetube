@@ -24,7 +24,7 @@ class Database:
             if read_only:
                 self._conn = sqlite3.connect(f"{db_path.absolute().as_uri()}?mode=ro", uri=True)
             else:
-                self._conn = sqlite3.connect(db_path.absolute().as_uri())
+                self._conn = sqlite3.connect(db_path.absolute().as_posix())
                 self._conn.execute('pragma journal_mode=wal;')
                 self._conn.execute('pragma foreign_keys=ON;')
 
@@ -369,6 +369,25 @@ class Pipeline(Database):
             ON pipeline.id = pipeline_schedule.pipeline_id;
         """)
         return results.fetchall()
+
+    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> list[tuple[int, str, str, str, int, str, str, int]]:
+
+        query = """
+            SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
+                   pipeline_schedule.id, pipeline_schedule.cron,
+                   pipeline_schedule.at, pipeline_schedule.paused
+            FROM pipeline
+            LEFT JOIN pipeline_schedule
+            ON pipeline.id = pipeline_schedule.pipeline_id
+            WHERE pipeline.id = ? AND pipeline_schedule.id = ?;
+        """
+        params = (pipeline_id, schedule_id)
+        results = self._conn.cursor().execute(query, params)
+        data = results.fetchall()
+        if data:
+            return data[0]
+        else:
+            return None
 
     def pipeline_from_schedule_id(self, schedule_id: int) -> Union[tuple[int, str, str, str], None]:
 

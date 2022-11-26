@@ -5,28 +5,26 @@
 from db import Pipeline, Store
 import util
 from gluetubed import GluetubeDaemon
-from runner import Runner
 import exception
 
 # python imports
 from pathlib import Path
 import struct
+import os
+import signal
+import shutil
 
 # 3rd party imports
 from prettytable import PrettyTable
 from prettytable import SINGLE_BORDER
 
 
-def gluetube_init() -> None:
+def gluetube_initdb() -> None:
 
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
         raise e
-
-    Path(gt_cfg.pipeline_dir).mkdir(parents=True, exist_ok=True)
-    Path(gt_cfg.sqlite_dir).mkdir(parents=True, exist_ok=True)
-    Path(gt_cfg.runner_tmp_dir).mkdir(parents=True, exist_ok=True)
 
     try:
         db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
@@ -41,7 +39,20 @@ def gluetube_init() -> None:
     except exception.dbError:
         raise
 
-    print('setup complete.')
+    print('database setup complete.')
+
+
+def gluetube_configure() -> None:
+
+    appdir = Path(Path.home() / '.gluetube')
+    appdir.mkdir(parents=True, exist_ok=True)
+    Path(appdir, 'pipelines').mkdir(parents=True, exist_ok=True)
+    Path(appdir, 'db').mkdir(parents=True, exist_ok=True)
+    Path(appdir, 'etc').mkdir(parents=True, exist_ok=True)
+    incl_cfg_location = Path(Path(__file__).parent.resolve() / 'cfg' / 'gluetube.cfg')
+    depl_cfg_location = Path(appdir / 'etc' / 'gluetube.cfg')
+    shutil.copy(incl_cfg_location, depl_cfg_location)
+    print('first time setup complete')
 
 
 def summary() -> PrettyTable:
@@ -113,6 +124,14 @@ def daemon_bg(debug: bool) -> None:
         GluetubeDaemon().start(debug)
     except exception.DaemonError:
         raise
+
+
+def daemon_stop(debug: bool) -> None:
+
+    with open('/tmp/gluetube.pid', 'r', encoding="utf-8") as f:
+        pid = f.readline()
+
+    os.kill(int(pid), signal.SIGTERM)
 
 
 def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:

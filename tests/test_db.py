@@ -639,6 +639,20 @@ class TestPipeline:
         assert results == []
         db.close()
 
+    def test_pipeline_schedule(self, db, pipeline, schedule_cron) -> None:
+
+        results = db.pipeline_schedule(1, 1)
+
+        assert results == (1, 'test', 'test.py', 'test_dir', 1, '* * * * *', '', 0)
+        db.close()
+
+    def test_pipeline_schedule_no_pipeline(self, db, pipeline) -> None:
+
+        results = db.pipeline_schedule(1, 1)
+
+        assert results is None
+        db.close()
+
     def test_pipeline_from_schedule_id(self, db, pipeline, schedule_at) -> None:
 
         results = db.pipeline_from_schedule_id(1)

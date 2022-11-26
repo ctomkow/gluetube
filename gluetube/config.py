@@ -32,6 +32,5 @@ class Gluetube:
             self.sqlite_kv_name = self.config['gluetube']['SQLITE_KV_NAME']
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
-            self.runner_tmp_dir = self.config['gluetube']['RUNNER_TMP_DIR']
         except KeyError as e:
             raise exception.ConfigFileParseError(f"Failed to lookup key, {e}, in config file") from e

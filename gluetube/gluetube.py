@@ -24,12 +24,18 @@ class Gluetube:
 
         self._setup_logging()
         args = self.parse_args(self._read_local_file('VERSION'))
+
+        # before anything happens, configure the environment
+        # a quick and dirty hack. probably should be an external script
+        if args.configure:
+            command.gluetube_configure()
+
         gt_cfg = util.conf()
         os.chdir(Path(__file__).parent.resolve())
 
         # gluetube level
-        if args.init:
-            command.gluetube_init()
+        if args.initdb:
+            command.gluetube_initdb()
         elif args.dev:
             try:
                 command.gluetube_dev(args.dev, Path(gt_cfg.socket_file))
@@ -54,6 +60,8 @@ class Gluetube:
                     command.daemon_fg(args.debug)
                 elif args.background:
                     command.daemon_bg(args.debug)
+                elif args.stop:
+                    command.daemon_stop(args.debug)
             except exception.DaemonError as e:
                 if args.debug:
                     logging.exception(f"Daemon failure. {e}")
@@ -111,7 +119,8 @@ class Gluetube:
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
-        group.add_argument('--init', action='store_true', help='Setup gluetube for the first time (db setup, etc)')
+        group.add_argument('--initdb', action='store_true', help='First time database setup')
+        group.add_argument('--configure', action='store_true', help='First time application setup')
         group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
 
         sub_parser = parser.add_subparsers()
@@ -121,10 +130,10 @@ class Gluetube:
 
         daemon = sub_parser.add_parser('daemon', description='start gluetube as a daemon process')
         daemon.add_argument('sub_cmd_daemon', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        daemon.add_argument('-s', '--stop', action='store_true', help='stop the daemon that is running in the background')
         daemon_group = daemon.add_mutually_exclusive_group()
         daemon_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
         daemon_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
-        # TODO: gluetube daemon -s --stop. Needs a PID to be tracked in the daemon, also specify it's location in gluetube.cfg
 
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
         pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd

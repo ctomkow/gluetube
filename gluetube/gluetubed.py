@@ -19,6 +19,7 @@ from json.decoder import JSONDecodeError
 import os
 from datetime import datetime
 import sys
+from typing import Union
 
 # 3rd party imports
 import daemon
@@ -240,7 +241,7 @@ class GluetubeDaemon:
 
     # auto-discovery calls this whenever a new pipeline.py AND pipeline_directory unique tuple is found
     def set_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str,
-                         scheduler: BackgroundScheduler = None, db_p: Pipeline = None, db_s: Store = None) -> None:
+                     scheduler: BackgroundScheduler = None, db_p: Pipeline = None, db_s: Store = None) -> None:
 
         try:
             pipeline_id = db_p.insert_pipeline(name, py_name, dir_name, py_timestamp)
@@ -293,22 +294,24 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-        pipeline = db_p.pipeline(pipeline_id)
-
         try:
-            runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], schedule_id)
+            self._schedule_add_job(schedule_id, DateTrigger(datetime(2999, 1, 1)), scheduler, db_p)
         except exception.RunnerError as e:
-            logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
-
-        scheduler.add_job(runner.run, DateTrigger(datetime(2999, 1, 1)), id=str(schedule_id))
+            raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
     def set_schedule_cron(self, schedule_id: int, cron: str,
                           scheduler: BackgroundScheduler = None, db_p: Pipeline = None, db_s: Store = None) -> None:
         # TODO: handle when reschedule works but db call fails and vice versa
-        try:
-            scheduler.reschedule_job(str(schedule_id), trigger=CronTrigger.from_crontab(cron))
-        except JobLookupError as e:
-            raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+        if scheduler.get_job(str(schedule_id)):
+            try:
+                scheduler.reschedule_job(str(schedule_id), trigger=CronTrigger.from_crontab(cron))
+            except JobLookupError as e:
+                raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+        else:
+            try:
+                self._schedule_add_job(schedule_id, CronTrigger.from_crontab(cron), scheduler, db_p)
+            except exception.RunnerError as e:
+                raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
         # remove at if exists, then set cron in db
         try:
@@ -329,22 +332,18 @@ class GluetubeDaemon:
             except JobLookupError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
-            pipeline = db_p.pipeline_from_schedule_id(schedule_id)
             try:
-                runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], schedule_id)
+                self._schedule_add_job(schedule_id, DateTrigger(at), scheduler, db_p)
             except exception.RunnerError as e:
-                logging.error(f"{e}. Not scheduling pipeline, {pipeline[1]}, runner creation failed.")
-            scheduler.add_job(runner.run, trigger=DateTrigger(at), id=str(schedule_id))
+                raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
-        # remove cron if exists, then set run_date in db
+        # remove cron if exists, then set at in db
         try:
             if db_p.pipeline_schedule_cron(schedule_id):
                 db_p.update_pipeline_schedule_cron(schedule_id, '')
             db_p.update_pipeline_schedule_at(schedule_id, at)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
-
-    # ##### scheduler modifications only
 
     def set_schedule_now(self, schedule_id: int,
                          scheduler: BackgroundScheduler = None, db_p: Pipeline = None, db_s: Store = None) -> None:
@@ -354,6 +353,20 @@ class GluetubeDaemon:
                 scheduler.reschedule_job(str(schedule_id))
             except JobLookupError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+        else:
+            try:
+                self._schedule_add_job(schedule_id, None, scheduler, db_p)
+            except exception.RunnerError as e:
+                raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
+
+    # remove cron and at if exists
+        try:
+            if db_p.pipeline_schedule_cron(schedule_id):
+                db_p.update_pipeline_schedule_cron(schedule_id, '')
+            if db_p.pipeline_schedule_at(schedule_id):
+                db_p.update_pipeline_schedule_at(schedule_id, '')
+        except sqlite3.Error as e:
+            raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # ##### database writes
 
@@ -415,3 +428,15 @@ class GluetubeDaemon:
             db_s.delete_key(table, key)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
+
+    # ##### rpc helper methods
+
+    def _schedule_add_job(self, schedule_id: int, trigger: Union[CronTrigger, DateTrigger, None],
+                          scheduler: BackgroundScheduler = None, db_p: Pipeline = None) -> None:
+
+        pipeline = db_p.pipeline_from_schedule_id(schedule_id)
+        try:
+            runner = Runner(pipeline[0], pipeline[1], pipeline[2], pipeline[3], schedule_id)
+        except exception.RunnerError(f"Not scheduling pipeline {pipeline[1]}, runner creation failed."):
+            raise
+        scheduler.add_job(runner.run, trigger=trigger, id=str(schedule_id))
