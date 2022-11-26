@@ -368,6 +368,17 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
+    def delete_schedule(self, schedule_id: int,
+                        scheduler: BackgroundScheduler = None, db_p: Pipeline = None, db_s: Store = None) -> None:
+
+        if scheduler.get_job(str(schedule_id)):
+            scheduler.remove_job(str(schedule_id))
+
+        try:
+            db_p.delete_pipeline_schedule(schedule_id)
+        except sqlite3.Error as e:
+            raise exception.DaemonError(f"Failed to update database. {e}") from e
+
     # ##### database writes
 
     def set_schedule_latest_run(self, schedule_id: int, pipeline_run_id: int,

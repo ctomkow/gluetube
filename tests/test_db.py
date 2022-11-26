@@ -222,6 +222,23 @@ class TestPipeline:
 
     # ##### PIPELINE SCHEDULE TABLE TESTS ##### #
 
+    def test_delete_pipeline_schedule(self, db, pipeline, schedule_cron) -> None:
+
+        db.delete_pipeline_schedule(1)
+
+        query = "SELECT id from pipeline_schedule where id = 1"
+        results = db._conn.cursor().execute(query)
+
+        assert results.fetchone() is None
+        db.close()
+
+    def test_delete_pipeline_schedule_empty_data(self, db, pipeline) -> None:
+
+        db.delete_pipeline_schedule(1)
+
+        assert True
+        db.close()
+
     def test_insert_pipeline_schedule_return_id(self, db, pipeline) -> None:
 
         db.create_schema()

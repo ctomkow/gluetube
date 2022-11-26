@@ -168,6 +168,16 @@ def schedule_now(schedule_id: int, socket_file: Path) -> None:
         raise
 
 
+def schedule_delete(schedule_id: int, socket_file: Path) -> None:
+
+    msg = util.craft_rpc_msg('delete_schedule', [schedule_id])
+
+    try:
+        util.send_rpc_msg_to_daemon(msg, socket_file)
+    except exception.rpcError:
+        raise
+
+
 def store_add(key: str, value: str, socket_file: Path) -> None:
 
     msg = util.craft_rpc_msg('set_key_value', [key, value])

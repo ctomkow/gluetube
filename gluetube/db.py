@@ -204,6 +204,13 @@ class Pipeline(Database):
 
     # pipeline_schedule writes
 
+    def delete_pipeline_schedule(self, schedule_id: int) -> None:
+
+        query = "DELETE FROM pipeline_schedule WHERE id = ?"
+        params = (schedule_id,)
+        self._conn.cursor().execute(query, params)
+        self._conn.commit()
+
     def insert_pipeline_schedule(self, pipeline_id: int, cron: str = '', at: str = '', paused: int = 0,
                                  retry_on_crash: int = 0, retry_num: int = 0, max_retries: int = 0) -> int:
 

@@ -17,7 +17,7 @@ todo
  - [ ] hello world tutorial
  - [ ] encrypted key value database
  - [ ] 50%+ test coverage
- - [ ] cli v1 (daemon control, modify scheduling, view pipelines and runs)
+ - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [x] pip install (directory mgmt, upgrades, etc)
  
 ### 0.2.0 roadmap

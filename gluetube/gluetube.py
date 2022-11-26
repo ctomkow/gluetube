@@ -86,6 +86,8 @@ class Gluetube:
                     command.schedule_at(args.ID[0], args.at, Path(gt_cfg.socket_file))
                 elif args.now:
                     command.schedule_now(args.ID[0], Path(gt_cfg.socket_file))
+                elif args.delete:
+                    command.schedule_delete(args.ID[0], Path(gt_cfg.socket_file))
             except exception.rpcError as e:
                 if args.debug:
                     logging.exception(f"Is the daemon running? {e}")
@@ -147,7 +149,8 @@ class Gluetube:
         schedule_group = schedule.add_mutually_exclusive_group()
         schedule_group.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
         schedule_group.add_argument('--at', action='store', metavar='AT', help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
-        schedule_group.add_argument('--now', action='store_true', help="set the schedule to run immediately")
+        schedule_group.add_argument('--now', action='store_true', help="set the schedule to run immediately, erases existing schedule")
+        schedule_group.add_argument('--delete', action='store_true', help="delete the schedule")
 
         store = sub_parser.add_parser('store', description='add and remove key value pairs')
         store.add_argument('sub_cmd_store', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
