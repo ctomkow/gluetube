@@ -46,14 +46,28 @@ class GluetubeDaemon:
 
     def start(self, debug: bool = False, fg: bool = False) -> None:
 
-        if fg:  # TODO: a hack, needs docker --init for SIGnals, also SIG handling when docker propogates the SIGnals down
-            self._setup(debug)
-
-        # TODO: send logs to proper location of daemon
         dir_path = Path(__file__).parent.resolve()
+
+        if fg:
+            with daemon.DaemonContext(
+                    working_directory=dir_path,
+                    detach_process=False,
+                    stdout=sys.stdout,
+                    stderr=sys.stdout,
+                    stdin=sys.stdin
+                    ):
+                self._setup(debug)
+
+        try:
+            gt_cfg = util.conf()
+        except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+            raise exception.DaemonError(f"Failed to start daemon. {e}") from e
+        log_file = open(gt_cfg.gluetube_log_file, "wb")
+
         with daemon.DaemonContext(
                 working_directory=dir_path,
-                stdout=open("./stdout.log", "wb"), stderr=open("./stderr.log", "wb")
+                stdout=log_file,
+                stderr=log_file
                 ):
             self._setup(debug)
 

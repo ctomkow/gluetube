@@ -48,6 +48,7 @@ def gluetube_configure() -> None:
     appdir.mkdir(parents=True, exist_ok=True)
     Path(appdir, 'pipelines').mkdir(parents=True, exist_ok=True)
     Path(appdir, 'db').mkdir(parents=True, exist_ok=True)
+    Path(appdir, 'var').mkdir(parents=True, exist_ok=True)
     Path(appdir, 'etc').mkdir(parents=True, exist_ok=True)
     incl_cfg_location = Path(Path(__file__).parent.resolve() / 'cfg' / 'gluetube.cfg')
     depl_cfg_location = Path(appdir / 'etc' / 'gluetube.cfg')
