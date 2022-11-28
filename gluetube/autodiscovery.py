@@ -152,18 +152,30 @@ class PipelineScanner:
 
     # source: https://www.uibk.ac.at/anglistik/staff/herdina/kursunterlagen/mayhew_a_a_concise_dictionary_of_middle_englishbooksee.org.pdf
     def _random_middle_english_adjective_and_noun(self) -> str:
-        # TODO: increase adjectives and nouns
+
         adjectives = [
             'admod',  # humble, gentle
             'aht',  # worthy, valiant
             'brant',  # steep, high
             'bel',  # beautiful
+            'calme',  # calm
+            'cant',  # lively, brave, cheerful
+            'drery',  # sad, dreary
+            'dilitable',  # delightful
+            'ender',  # latter
+            'erly',  # early
         ]
         nouns = [
             'abbay',  # church
             'alemaunde',  # almond
             'banere',  # banner
             'beere',  # beer
+            'camamelle',  # camomile
+            'candel',  # candle
+            'disour',  # minstrel
+            'duk',  # duke
+            'elf',  # elf
+            'ey',  # egg
         ]
 
         adj = adjectives[random.randint(0, len(adjectives)-1)]
