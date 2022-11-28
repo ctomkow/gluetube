@@ -33,7 +33,7 @@ setup(
         install_requires=[
             'python-daemon>=2.3.1,<3.0.0',
             'apscheduler>=3.9.1,<4.0.0',
-            'prettytable>=3.4.1,<4.0.0',
+            'prettytable==2.5.0',
             'jinja2>=3.1.2,<4.0.0'
         ],
 
