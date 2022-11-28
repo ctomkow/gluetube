@@ -7,7 +7,7 @@ import exception
 # python imports
 import sqlite3
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 
 class Database:
@@ -344,7 +344,7 @@ class Pipeline(Database):
 
     # cli commands
 
-    def summary_pipelines(self) -> list[tuple[str, str, int, str, str, int, str, str, str]]:
+    def summary_pipelines(self) -> List[tuple[str, str, int, str, str, int, str, str, str]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.at,
@@ -359,13 +359,13 @@ class Pipeline(Database):
 
     # reads
 
-    def all_pipelines(self) -> list[tuple[int, str, str, str, float, int]]:
+    def all_pipelines(self) -> List[tuple[int, str, str, str, float, int]]:
 
         query = "SELECT id, name, py_name, dir_name, py_timestamp FROM pipeline"
         results = self._conn.cursor().execute(query)
         return results.fetchall()
 
-    def all_pipelines_scheduling(self) -> list[tuple[int, str, str, str, int, str, str, int]]:
+    def all_pipelines_scheduling(self) -> List[tuple[int, str, str, str, int, str, str, int]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
@@ -377,7 +377,7 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> list[tuple[int, str, str, str, int, str, str, int]]:
+    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[tuple[int, str, str, str, int, str, str, int]]:
 
         query = """
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
@@ -490,7 +490,7 @@ class Pipeline(Database):
         else:
             return data
 
-    def pipeline_schedules_id(self, pipeline_id: int) -> list[int]:
+    def pipeline_schedules_id(self, pipeline_id: int) -> List[int]:
 
         query = "SELECT id FROM pipeline_schedule WHERE pipeline_id = ?"
         params = (pipeline_id,)

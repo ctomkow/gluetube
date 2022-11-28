@@ -10,9 +10,10 @@ from pathlib import Path
 import json
 import struct
 import socket
+from typing import List
 
 
-def append_name_to_dir_list(name: str, dirs: list) -> list[str]:
+def append_name_to_dir_list(name: str, dirs: list) -> List[str]:
 
     return [s + name for s in dirs]
 
@@ -24,7 +25,7 @@ def append_name_to_dir_list(name: str, dirs: list) -> list[str]:
 #   then branches out eventually system-wide
 #
 #   if multiple config files are found, the last one read will overwrite the earlier files found
-def conf_dir() -> list[str]:
+def conf_dir() -> List[str]:
 
     return [
         './',

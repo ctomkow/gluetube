@@ -16,6 +16,7 @@ from venv import EnvBuilder
 from pathlib import Path
 import datetime
 from time import sleep
+from typing import Set
 
 # 3rd party imports
 from jinja2 import Template, FileSystemLoader, Environment, meta
@@ -162,7 +163,7 @@ def _jinja_template(env: Environment, file: str) -> Template:
     return template
 
 
-def _all_variables_in_template(env: Environment, directory: Path, file: str) -> set[str]:
+def _all_variables_in_template(env: Environment, directory: Path, file: str) -> Set[str]:
 
     data = Path(directory.resolve(), file).read_text()
     ast = env.parse(data)
@@ -170,7 +171,7 @@ def _all_variables_in_template(env: Environment, directory: Path, file: str) -> 
     return variables
 
 
-def _variable_value_pairs_for_template(variables: set[str], db: Store) -> dict:
+def _variable_value_pairs_for_template(variables: Set[str], db: Store) -> dict:
 
     pairs = {}
     for var in variables:
