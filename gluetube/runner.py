@@ -83,7 +83,13 @@ class Runner:
 
         # Finally, actually fork the pipeline process
         try:
-            subprocess.check_output([".venv/bin/python", "-uc", pipeline_as_a_string], text=True, cwd=dir_abs_path, env=gluetube_env_vars)
+            subprocess.check_output(
+                [".venv/bin/python", "-"],
+                text=True, cwd=dir_abs_path,
+                env=gluetube_env_vars,
+                input=pipeline_as_a_string,
+                stderr=STDOUT
+            )
         except CalledProcessError as e:
             util.send_rpc_msg_to_daemon(
                 util.craft_rpc_msg(

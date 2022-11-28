@@ -67,7 +67,8 @@ class GluetubeDaemon:
         with daemon.DaemonContext(
                 working_directory=dir_path,
                 stdout=log_file,
-                stderr=log_file
+                stderr=log_file,
+                detach_process=True
                 ):
             self._setup(debug)
 
