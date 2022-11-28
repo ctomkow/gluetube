@@ -87,7 +87,6 @@ class PipelineScanner:
 
         return db
 
-
     def _all_dirs(self, current_dir: Path) -> list[Path]:
 
         dirs = [x for x in current_dir.iterdir() if x.is_dir()]

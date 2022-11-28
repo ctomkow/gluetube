@@ -80,7 +80,7 @@ def summary() -> PrettyTable:
 
 
 def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
-    # TODO: remove this config and pass in vars instead
+
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
@@ -137,8 +137,6 @@ def daemon_stop(debug: bool) -> None:
 
 def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:
 
-    # TODO: basic cron validation
-
     msg = util.craft_rpc_msg('set_schedule_cron', [schedule_id, cron])
 
     try:
@@ -148,8 +146,6 @@ def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:
 
 
 def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
-
-    # TODO: validate run_date_time is valid ISO 8601 string
 
     msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, at])
 
