@@ -7,7 +7,7 @@ import exception
 # python imports
 import sqlite3
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Tuple
 
 
 class Database:
@@ -344,7 +344,7 @@ class Pipeline(Database):
 
     # cli commands
 
-    def summary_pipelines(self) -> List[tuple[str, str, int, str, str, int, str, str, str]]:
+    def summary_pipelines(self) -> List[Tuple[str, str, int, str, str, int, str, str, str]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.name, pipeline.py_name, pipeline_schedule.id, pipeline_schedule.cron, pipeline_schedule.at,
@@ -359,13 +359,13 @@ class Pipeline(Database):
 
     # reads
 
-    def all_pipelines(self) -> List[tuple[int, str, str, str, float, int]]:
+    def all_pipelines(self) -> List[Tuple[int, str, str, str, float, int]]:
 
         query = "SELECT id, name, py_name, dir_name, py_timestamp FROM pipeline"
         results = self._conn.cursor().execute(query)
         return results.fetchall()
 
-    def all_pipelines_scheduling(self) -> List[tuple[int, str, str, str, int, str, str, int]]:
+    def all_pipelines_scheduling(self) -> List[Tuple[int, str, str, str, int, str, str, int]]:
 
         results = self._conn.cursor().execute("""
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
@@ -377,7 +377,7 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[tuple[int, str, str, str, int, str, str, int]]:
+    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[Tuple[int, str, str, str, int, str, str, int]]:
 
         query = """
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
@@ -396,7 +396,7 @@ class Pipeline(Database):
         else:
             return None
 
-    def pipeline_from_schedule_id(self, schedule_id: int) -> Union[tuple[int, str, str, str], None]:
+    def pipeline_from_schedule_id(self, schedule_id: int) -> Union[Tuple[int, str, str, str], None]:
 
         query = """
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name

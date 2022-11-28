@@ -10,7 +10,7 @@ import util
 from pathlib import Path
 import re
 import random
-from typing import List
+from typing import List, Tuple
 
 
 # TODO: error handling
@@ -118,7 +118,7 @@ class PipelineScanner:
         return files
 
     # list of tuples representing the pipelines (py_file, directory, py_file_timestamp)
-    def _enumerate_fs_pipelines(self, pipeline_dirs: List[Path]) -> List[tuple[str, str, float]]:
+    def _enumerate_fs_pipelines(self, pipeline_dirs: List[Path]) -> List[Tuple[str, str, float]]:
 
         tuples = []
         for dir in pipeline_dirs:
@@ -129,7 +129,7 @@ class PipelineScanner:
         return tuples
 
     def _enumerate_db_pipelines(self,
-                                pipeline_data: List[tuple[int, str, str, str, float]]) -> List[tuple[str, str, float]]:
+                                pipeline_data: List[Tuple[int, str, str, str, float]]) -> List[Tuple[str, str, float]]:
 
         enum = []
 
