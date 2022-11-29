@@ -19,7 +19,7 @@ todo
  - [ ] 50%+ test coverage
  - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [x] pip install (directory mgmt, upgrades, etc)
- - [x] github actions
+ - [x] github actions 
  
 ### 0.2.0 roadmap
  - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
