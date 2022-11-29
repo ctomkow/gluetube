@@ -35,6 +35,7 @@ todo
 
 ### 0.4.0 roadmap
  - [ ] dynamic webhook url that pipeline can access (for event listener type pipelines)
+ - [ ] gracefully handle SIG[TERM|KILL] and ensure it waits for any running pipelines to stop or manually stop them
  - [ ] .rpm
  - [ ] .deb
 
