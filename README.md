@@ -40,6 +40,7 @@ todo
 
  ### 0.5.0 roadmap
  - [ ] cli v2
+ - [ ] pipeline developement mode (ability to see the stdout of the pipeline to track it's run)
 
 ## installation
 > adduser gluetube
@@ -54,15 +55,20 @@ todo
 
 > gluetube daemon --stop
 
+OR
+> docker volume create gluetube
+
+> docker run -d -v gluetube:/home/gluetube/.gluetube ctomkow/gluetube
+
 todo: systemd unit file (when rpm/deb is built, it will include a unit file since the packages are run as root)
 
 ## usage
 
-> gluetube daemon --background
+> gluetube --help
 
 > gluetube summary
 
-> gluetube --help
+> gluetube schedule 1 --now
 
 ## dev env
 

@@ -26,6 +26,7 @@ WORKDIR /home/gluetube
 COPY --from=build /builddir/dist/gluetube-${VERSION}-py3-none-any.whl ./
 RUN pip install --user gluetube-${VERSION}-py3-none-any.whl
 
+RUN gluetube --configure
 RUN gluetube --initdb
 
 CMD ["sh", "-c", "exec gluetube daemon -f"]
