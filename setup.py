@@ -7,6 +7,7 @@ import gluetube
 # python imports
 from setuptools import setup, find_namespace_packages
 import os
+from codecs import open
 
 # read from the VERSION file
 with open(os.path.join(os.path.dirname(gluetube.__file__), 'VERSION')) as version_file:
@@ -48,7 +49,7 @@ setup(
             'python-daemon>=2.3.1,<3.0.0',
             'apscheduler>=3.9.1,<4.0.0',
             'prettytable==2.5.0',
-            'jinja2==3.0.3'
+            'jinja2==3.0.3',
         ],
 
         entry_points={
