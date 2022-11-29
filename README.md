@@ -58,7 +58,7 @@ todo
 OR
 > docker volume create gluetube
 
-> docker run -d -v gluetube:/home/gluetube/.gluetube ctomkow/gluetube
+> docker run -d --init -v gluetube:/home/gluetube/.gluetube ctomkow/gluetube
 
 todo: systemd unit file (when rpm/deb is built, it will include a unit file since the packages are run as root)
 
