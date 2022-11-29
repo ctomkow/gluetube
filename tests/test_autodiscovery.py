@@ -51,8 +51,8 @@ class TestPipelineScanner:
     def test_enumerate_fs_pipelines(self, scanner, abspath_test_pipeline_dir) -> None:
 
         tuples = scanner._enumerate_fs_pipelines([Path(f"{abspath_test_pipeline_dir}/test_1")])
-        test_tuples = [('example_pipeline2.py', 'test_1', 1667941329.6938233),
-                       ('example_pipeline1.py', 'test_1', 1668716080.3641396)]
+        test_tuples = [('example_pipeline2.py', 'test_1', Path(f"{abspath_test_pipeline_dir}/test_1/example_pipeline2.py").lstat().st_mtime),
+                       ('example_pipeline1.py', 'test_1', Path(f"{abspath_test_pipeline_dir}/test_1/example_pipeline1.py").lstat().st_mtime)]
 
         assert set(tuples) == set(test_tuples)
 

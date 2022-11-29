@@ -181,10 +181,3 @@ def _variable_value_pairs_for_template(variables: Set[str], db: Store) -> dict:
         pairs[var] = f"'{value}'"
 
     return pairs
-
-
-def _write_tmp_python_file(python_code: str, tmp_dir: Path) -> Path:
-
-    py_file = Path(tmp_dir, 'my_random_pyfile.py')
-    py_file.write_text(python_code)
-    return py_file
