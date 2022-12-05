@@ -27,14 +27,15 @@ todo
  - [ ] git pull repo of pipelines into pipeline_dir
  - [ ] option to define (name, schedule) in pipeline (incl. run pipeline on change to get new potential name, schedule etc.)
  - [ ] a 'gluetube pipeline --clean' and 'gluetube pipeline --cleanall' to remove .venv's that are made
+ - [ ] pipeline accessible database to store system object relationships related to pipeline
 
 ### 0.3.0 roadmap
  - [ ] frontend web ui
- - [ ] REST api endpoint to trigger running pipeline
+ - [ ] REST api endpoint to trigger running pipeline, including passing optional parameters as json payload that is accessable by pipeline (PUSH)
  - [ ] development pipeline mode (verbose output for testing pipeline runs)
 
 ### 0.4.0 roadmap
- - [ ] dynamic webhook url that pipeline can access (for event listener type pipelines)
+ - [ ] dynamic webhook url that pipeline can access/monitor (long-lived LISTENER pipelines)
  - [ ] gracefully handle SIG[TERM|KILL] and ensure it waits for any running pipelines to stop or manually stop them
  - [ ] .rpm
  - [ ] .deb
