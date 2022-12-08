@@ -2,7 +2,7 @@ FROM python:3.10.7-bullseye
 
 RUN useradd --uid 1000 --create-home --shell /bin/bash gluetube
 
-RUN apt-get update && apt-get install -y sqlite3
+RUN apt-get update && apt-get install -y sqlite3 vim
 
 USER gluetube
 ENV PATH "$PATH:/home/gluetube/.local/bin"

@@ -33,5 +33,7 @@ class Gluetube:
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
             self.gluetube_log_file = self.config['gluetube']['GLUETUBE_LOG_FILE']
+            self.http_proxy = self.config['gluetube']['HTTP_PROXY']
+            self.https_proxy = self.config['gluetube']['HTTPS_PROXY']
         except KeyError as e:
             raise exception.ConfigFileParseError(f"Failed to lookup key, {e}, in config file") from e

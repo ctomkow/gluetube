@@ -41,6 +41,8 @@ class Runner:
         self.db_app_name = gt_cfg.sqlite_app_name
         self.db_kv_name = gt_cfg.sqlite_kv_name
         self.socket_file = Path(gt_cfg.socket_file)
+        self.http_proxy = gt_cfg.http_proxy
+        self.https_proxy = gt_cfg.https_proxy
 
     def run(self) -> None:
 
@@ -53,7 +55,7 @@ class Runner:
         # attempt to install pipeline requirements every time it is run
         # this is required because the pipeline could have changed along with it's requirements.txt
         if _requirements_exists(f"{dir_abs_path}/requirements.txt"):
-            _install_pipeline_requirements(dir_abs_path)
+            _install_pipeline_requirements(dir_abs_path, self.http_proxy, self.https_proxy)
 
         # ### THE 'START' of the pipeline ###
 
@@ -85,7 +87,7 @@ class Runner:
         # Finally, actually fork the pipeline process
         try:
             subprocess.check_output(
-                [".venv/bin/python", "-"],
+                [".venv/bin/python3", "-"],
                 text=True, cwd=dir_abs_path,
                 env=gluetube_env_vars,
                 input=pipeline_as_a_string,
@@ -142,10 +144,14 @@ def _symlink_gluetube_to_venv(venv_dir: str) -> None:
     os.symlink(src, dst)
 
 
-def _install_pipeline_requirements(dir: str) -> None:
+def _install_pipeline_requirements(dir: str, http_proxy: str = '', https_proxy: str = '') -> None:
+
+    env_vars = os.environ.copy()
+    env_vars['HTTP_PROXY'] = http_proxy
+    env_vars['HTTPS_PROXY'] = http_proxy
 
     try:
-        subprocess.check_output(['.venv/bin/pip', 'install', '-r', 'requirements.txt'], cwd=dir)
+        subprocess.check_output(['.venv/bin/pip3', 'install', '-r', 'requirements.txt'], cwd=dir, env=env_vars)
     except CalledProcessError:
         raise
 
