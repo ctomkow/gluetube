@@ -20,7 +20,7 @@ todo
  - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [x] pip install (directory mgmt, upgrades, etc)
  - [x] github actions
- - [ ] proxy support to ensure pip can pull pipeline dependencies
+ - [x] proxy support to ensure pip can pull pipeline dependencies
  
 ### 0.2.0 roadmap
  - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
@@ -29,11 +29,12 @@ todo
  - [ ] option to define (name, schedule) in pipeline (incl. run pipeline on change to get new potential name, schedule etc.)
  - [ ] a 'gluetube pipeline --clean' and 'gluetube pipeline --cleanall' to remove .venv's that are made
  - [ ] pipeline accessible database to store system object relationships related to pipeline
+ - [ ] ability to view pipeline runs via cli
 
 ### 0.3.0 roadmap
  - [ ] frontend web ui
  - [ ] REST api endpoint to trigger running pipeline, including passing optional parameters as json payload that is accessable by pipeline (PUSH)
- - [ ] development pipeline mode (verbose output for testing pipeline runs)
+ - [ ] pipeline developement mode (ability to see the stdout of the pipeline to track it's run)
  - [ ] ability to 'attach' to running pipeline and see stdout (e.g. gluetube logs -f pipeline_name)
  
 ### 0.4.0 roadmap
@@ -44,7 +45,6 @@ todo
 
  ### 0.5.0 roadmap
  - [ ] cli v2
- - [ ] pipeline developement mode (ability to see the stdout of the pipeline to track it's run)
 
 ## installation
 > adduser gluetube
