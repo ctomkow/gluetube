@@ -148,7 +148,7 @@ def _install_pipeline_requirements(dir: str, http_proxy: str = '', https_proxy: 
 
     env_vars = os.environ.copy()
     env_vars['HTTP_PROXY'] = http_proxy
-    env_vars['HTTPS_PROXY'] = http_proxy
+    env_vars['HTTPS_PROXY'] = https_proxy
 
     try:
         subprocess.check_output(['.venv/bin/pip3', 'install', '-r', 'requirements.txt'], cwd=dir, env=env_vars)
