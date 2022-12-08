@@ -19,7 +19,8 @@ todo
  - [ ] 50%+ test coverage
  - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [x] pip install (directory mgmt, upgrades, etc)
- - [x] github actions 
+ - [x] github actions
+ - [ ] proxy support to ensure pip can pull pipeline dependencies
  
 ### 0.2.0 roadmap
  - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
@@ -33,7 +34,8 @@ todo
  - [ ] frontend web ui
  - [ ] REST api endpoint to trigger running pipeline, including passing optional parameters as json payload that is accessable by pipeline (PUSH)
  - [ ] development pipeline mode (verbose output for testing pipeline runs)
-
+ - [ ] ability to 'attach' to running pipeline and see stdout (e.g. gluetube logs -f pipeline_name)
+ 
 ### 0.4.0 roadmap
  - [ ] dynamic webhook url that pipeline can access/monitor (long-lived LISTENER pipelines)
  - [ ] gracefully handle SIG[TERM|KILL] and ensure it waits for any running pipelines to stop or manually stop them
