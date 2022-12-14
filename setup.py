@@ -55,6 +55,7 @@ setup(
         entry_points={
             'console_scripts': [
                 'gluetube=gluetube.gluetube:Gluetube',
+                'gt=gluetube.gluetube:Gluetube',
             ],
         },
         packages=find_namespace_packages(where="."),
