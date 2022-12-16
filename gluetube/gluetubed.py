@@ -20,7 +20,7 @@ from json.decoder import JSONDecodeError
 import os
 from datetime import datetime
 import sys
-from typing import Union, Any
+from typing import Union, Any, Dict
 
 # 3rd party imports
 import daemon
@@ -252,7 +252,7 @@ class GluetubeDaemon:
     # ##### scheduler and database modifications together
 
     # auto-discovery calls this whenever a new pipeline.py AND pipeline_directory unique tuple is found
-    def set_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str, **kwargs: dict[str, Any]) -> None:
+    def set_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str, **kwargs: Dict[str, Any]) -> None:
 
         try:
             pipeline_id = kwargs['db_p'].insert_pipeline(name, py_name, dir_name, py_timestamp)
@@ -275,7 +275,7 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to add pipeline schedule. {e}") from e
 
     # auto-discovery calls this whenever a pipeline.py AND pipeline_directory unique tuple disappears
-    def delete_pipeline(self, pipeline_id: int, **kwargs: dict[str, Any]) -> None:
+    def delete_pipeline(self, pipeline_id: int, **kwargs: Dict[str, Any]) -> None:
 
         schedules_id = kwargs['db_p'].pipeline_schedules_id(pipeline_id)
 
@@ -292,7 +292,7 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to delete pipeline from database. {e}") from e
 
-    def set_schedule(self, pipeline_id: int, **kwargs: dict[str, Any]) -> None:
+    def set_schedule(self, pipeline_id: int, **kwargs: Dict[str, Any]) -> None:
 
         try:
             schedule_id = kwargs['db_p'].insert_pipeline_schedule(pipeline_id)
@@ -304,7 +304,7 @@ class GluetubeDaemon:
         except exception.RunnerError as e:
             raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
-    def set_schedule_cron(self, schedule_id: int, cron: str, **kwargs: dict[str, Any]) -> None:
+    def set_schedule_cron(self, schedule_id: int, cron: str, **kwargs: Dict[str, Any]) -> None:
 
         if kwargs['scheduler'].get_job(str(schedule_id)):
             try:
@@ -325,7 +325,7 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_schedule_at(self, schedule_id: int, at: str, **kwargs: dict[str, Any]) -> None:
+    def set_schedule_at(self, schedule_id: int, at: str, **kwargs: Dict[str, Any]) -> None:
 
         # need to check if the job exists or not. Once a run-once job has been run, it's autoremoved from scheduler
         if kwargs['scheduler'].get_job(str(schedule_id)):
@@ -347,7 +347,7 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_schedule_now(self, schedule_id: int, **kwargs: dict[str, Any]) -> None:
+    def set_schedule_now(self, schedule_id: int, **kwargs: Dict[str, Any]) -> None:
 
         if kwargs['scheduler'].get_job(str(schedule_id)):
             try:
@@ -369,7 +369,7 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def delete_schedule(self, schedule_id: int, **kwargs: dict[str, Any]) -> None:
+    def delete_schedule(self, schedule_id: int, **kwargs: Dict[str, Any]) -> None:
 
         if kwargs['scheduler'].get_job(str(schedule_id)):
             kwargs['scheduler'].remove_job(str(schedule_id))
@@ -381,14 +381,14 @@ class GluetubeDaemon:
 
     # ##### database writes
 
-    def set_schedule_latest_run(self, schedule_id: int, pipeline_run_id: int, **kwargs: dict[str, Any]) -> None:
+    def set_schedule_latest_run(self, schedule_id: int, pipeline_run_id: int, **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_schedule_latest_run(schedule_id, pipeline_run_id)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_pipeline_run(self, pipeline_id: int, schedule_id: int, status: str, start_time: str, **kwargs: dict[str, Any]) -> None:
+    def set_pipeline_run(self, pipeline_id: int, schedule_id: int, status: str, start_time: str, **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_p'].insert_pipeline_run(pipeline_id, schedule_id, status, start_time)
@@ -396,7 +396,7 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # pipeline.py calls this to update the status it's in
-    def set_pipeline_run_status(self, pipeline_run_id: int, status: str, **kwargs: dict[str, Any]) -> None:
+    def set_pipeline_run_status(self, pipeline_run_id: int, status: str, **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_run_status(pipeline_run_id, status)
@@ -404,7 +404,7 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # pipeline.py calls this to update the stage it's in
-    def set_pipeline_run_stage_and_stage_msg(self, pipeline_run_id: int, stage: int, msg: str, **kwargs: dict[str, Any]) -> None:
+    def set_pipeline_run_stage_and_stage_msg(self, pipeline_run_id: int, stage: int, msg: str, **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_run_stage_and_stage_msg(pipeline_run_id, stage, msg)
@@ -412,21 +412,21 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # runner.py calls this to update the pipeline run when it's done
-    def set_pipeline_run_finished(self, pipeline_run_id: int, status: str, msg: str, end_time: str, **kwargs: dict[str, Any]) -> None:
+    def set_pipeline_run_finished(self, pipeline_run_id: int, status: str, msg: str, end_time: str, **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_run_status_exit_msg_end_time(pipeline_run_id, status, msg, end_time)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_key_value(self, key: str, value: str, table: str = 'common', **kwargs: dict[str, Any]) -> None:
+    def set_key_value(self, key: str, value: str, table: str = 'common', **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_s'].insert_key_value(table, key, value)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def delete_key(self, key: str, table: str = 'common', **kwargs: dict[str, Any]) -> None:
+    def delete_key(self, key: str, table: str = 'common', **kwargs: Dict[str, Any]) -> None:
 
         try:
             kwargs['db_s'].delete_key(table, key)
