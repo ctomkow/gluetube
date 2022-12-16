@@ -5,6 +5,7 @@
 import util
 import exception
 from db import Pipeline, Store
+import config
 
 # python imports
 import logging
@@ -24,12 +25,7 @@ from jinja2 import Template, FileSystemLoader, Environment, meta
 
 class Runner:
 
-    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str, schedule_id: int) -> None:
-
-        try:
-            gt_cfg = util.conf()
-        except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-            raise exception.RunnerError(f"Failed to initialize runner. {e}") from e
+    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str, schedule_id: int, gt_cfg: config.Gluetube) -> None:
 
         self.base_dir = gt_cfg.pipeline_dir
         self.p_id = pipeline_id

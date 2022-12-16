@@ -377,12 +377,12 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[Tuple[int, str, str, str, int, str, str, int]]:
+    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[Tuple[int, str, str, str, int, str, str, int, int]]:
 
         query = """
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,
                    pipeline_schedule.id, pipeline_schedule.cron,
-                   pipeline_schedule.at, pipeline_schedule.paused
+                   pipeline_schedule.at, pipeline_schedule.paused, pipeline_schedule.latest_run
             FROM pipeline
             LEFT JOIN pipeline_schedule
             ON pipeline.id = pipeline_schedule.pipeline_id
@@ -508,3 +508,18 @@ class Pipeline(Database):
             return data[0]
         else:
             return data
+
+    def pipeline_run(self, run_id: int) -> Union[Tuple[int, int, str, int, str, str, str, str], None]:
+
+        query = """
+            SELECT pipeline_id, schedule_id, status, stage, stage_msg, exit_msg, start_time, end_time
+            FROM pipeline_run
+            WHERE pipeline_run.id = ?;
+        """
+        params = (run_id,)
+        results = self._conn.cursor().execute(query, params)
+        data = results.fetchall()
+        if data:
+            return data[0]
+        else:
+            return None

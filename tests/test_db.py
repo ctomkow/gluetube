@@ -660,7 +660,7 @@ class TestPipeline:
 
         results = db.pipeline_schedule(1, 1)
 
-        assert results == (1, 'test', 'test.py', 'test_dir', 1, '* * * * *', '', 0)
+        assert results == (1, 'test', 'test.py', 'test_dir', 1, '* * * * *', '', 0, None)
         db.close()
 
     def test_pipeline_schedule_no_pipeline(self, db, pipeline) -> None:
