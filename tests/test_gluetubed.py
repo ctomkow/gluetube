@@ -13,7 +13,7 @@ from gluetube.runner import Runner
 from pathlib import Path
 import os
 import socket
-from typing import Any
+from typing import Any, Dict
 from datetime import datetime
 
 # 3rd party imports
@@ -68,7 +68,7 @@ class TestGluetubeDaemon:
         return gt_cfg
 
     @pytest.fixture
-    def kwargs(self, scheduler, db_p, db_s, gt_cfg) -> dict[str, Any]:
+    def kwargs(self, scheduler, db_p, db_s, gt_cfg) -> Dict[str, Any]:
 
         return {'scheduler': scheduler, 'db_p': db_p, 'db_s': db_s, 'gt_cfg': gt_cfg}
 
