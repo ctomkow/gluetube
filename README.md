@@ -16,7 +16,7 @@ todo
  - [x] dockerfile
  - [ ] hello world tutorial
  - [ ] encrypted key value database
- - [ ] 50%+ test coverage
+ - [x] 50%+ test coverage
  - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [x] pip install (directory mgmt, upgrades, etc)
  - [x] github actions
