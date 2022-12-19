@@ -45,6 +45,7 @@ todo
 
  ### 0.5.0 roadmap
  - [ ] cli v2
+ - [ ] ability to run pipelines serially that are linked together (e.g. pipeline reuse)
 
 ## installation
 > adduser gluetube
@@ -74,19 +75,30 @@ todo: systemd unit file (when rpm/deb is built, it will include a unit file sinc
 
 > gluetube schedule 1 --now
 
-## dev env
+## pipeline development
 
-docker build -t gluetube-dev:0.1.0 -f dockerfile.dev .
+docker pull ctomkow/gluetube
 
 docker volume create gluetube-db
+
 docker volume create gluetube-cfg
 
-docker run -itd --name gluetube-dev --net=host -v ~/code/gluetube/gluetube:/home/gluetube/.local/lib/python3.10/site-packages/gluetube -v ~/code/pipelines:/home/gluetube/.gluetube/pipelines -v gluetube-db:/home/gluetube/.gluetube/db -v gluetube-cfg:/home/gluetube/.gluetube/etc gluetube-dev:0.1.0
+docker run -itd --name gluetube --net=host -v gluetube-db:/home/gluetube/.gluetube/db -v gluetube-cfg:/home/gluetube/.gluetube/etc ctomkow/gluetube:latest
+
+Use VS code. Attach VS code to running container. Clone your pipeline repository inside your VS code instance attached to the container. Update ~/.gluetube/etc/gluetube.cfg and point config to pipeline directory
+
+
+## gluetube dev env
+
+docker pull ctomkow/gluetube
+
+docker volume create gluetube-db
+
+docker volume create gluetube-cfg
+
+docker run -itd --name gluetube --net=host -v ~/code/gluetube/gluetube:/home/gluetube/.local/lib/python3.10/site-packages/gluetube -v ~/code/test_pipelines:/home/gluetube/.gluetube/test_pipelines -v gluetube-db:/home/gluetube/.gluetube/db -v gluetube-cfg:/home/gluetube/.gluetube/etc ctomkow/gluetube:latest
 
 docker exec -it gluetube bash
-> cd ~/.local/lib/python3.10/site-packages/gluetube
-
-> ./gluetube.py --initdb
 
 ## design
 
