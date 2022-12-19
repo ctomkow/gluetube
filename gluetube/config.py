@@ -6,9 +6,12 @@ import exception
 
 # python imports
 import configparser
+from pathlib import Path
 
 
 class Gluetube:
+
+    cfg_path = Path
 
     def __init__(self, conf_locations: list) -> None:
 
@@ -22,6 +25,8 @@ class Gluetube:
         if not filename:
             raise exception.ConfigFileNotFoundError(conf_locations)
 
+        self.cfg_path = Path(filename.pop())
+
     def parse(self) -> None:
 
         try:
@@ -30,6 +35,7 @@ class Gluetube:
             self.sqlite_dir = self.config['gluetube']['SQLITE_DIR']
             self.sqlite_app_name = self.config['gluetube']['SQLITE_APP_NAME']
             self.sqlite_kv_name = self.config['gluetube']['SQLITE_KV_NAME']
+            self.sqlite_token = self.config['gluetube']['SQLITE_TOKEN']
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
             self.gluetube_log_file = self.config['gluetube']['GLUETUBE_LOG_FILE']
@@ -37,3 +43,8 @@ class Gluetube:
             self.https_proxy = self.config['gluetube']['HTTPS_PROXY']
         except KeyError as e:
             raise exception.ConfigFileParseError(f"Failed to lookup key, {e}, in config file") from e
+
+    def write(self) -> None:
+
+        with open(self.cfg_path.resolve().as_posix(), 'w') as configfile:
+            self.config.write(configfile)

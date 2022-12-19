@@ -50,6 +50,7 @@ setup(
             'apscheduler>=3.9.1,<4.0.0',
             'prettytable==2.5.0',
             'jinja2==3.0.3',
+            'cryptography>=38.0.4,<39.0.0',
         ],
 
         entry_points={

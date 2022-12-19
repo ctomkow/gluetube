@@ -9,6 +9,9 @@ import sqlite3
 from pathlib import Path
 from typing import Union, List, Tuple
 
+# 3rd party imports
+from cryptography.fernet import Fernet
+
 
 class Database:
 
@@ -34,6 +37,38 @@ class Database:
 
 
 class Store(Database):
+
+    token = None
+
+    def __init__(self, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False, token: str = '') -> None:
+
+        self.token = token
+
+        if not in_memory and token:
+            # todo: decrypt
+            pass
+
+        super().__init__(db_path, read_only, in_memory)
+
+    def __enter__(self):
+
+        return self
+
+    def __exit__(self, exception_type, exception_val, trace):
+
+        try:
+            self.close()
+        except AttributeError:  # obj isn't closable
+            print('Not closable.')
+            return True  # exception handled successfully
+
+    def close(self, in_memory: bool = False) -> None:
+
+        self._conn.close()
+
+        if not in_memory and self.token:
+            # todo: encrypt
+            pass
 
     def create_table(self, table: str) -> None:
 
