@@ -36,6 +36,7 @@ class Runner:
         self.db_dir = gt_cfg.sqlite_dir
         self.db_app_name = gt_cfg.sqlite_app_name
         self.db_kv_name = gt_cfg.sqlite_kv_name
+        self.db_kv_token = gt_cfg.sqlite_token
         self.socket_file = Path(gt_cfg.socket_file)
         self.http_proxy = gt_cfg.http_proxy
         self.https_proxy = gt_cfg.https_proxy
@@ -59,7 +60,7 @@ class Runner:
         env = _load_template_env(Path(dir_abs_path))
         template = _jinja_template(env, self.py_file)
         variables = _all_variables_in_template(env, Path(dir_abs_path), self.py_file)
-        db_kv = Store(db_path=Path(self.db_dir, self.db_kv_name))
+        db_kv = Store(self.db_kv_token, db_path=Path(self.db_dir, self.db_kv_name))
         pairs = _variable_value_pairs_for_template(variables, db_kv)
         pipeline_as_a_string = template.render(pairs)
 

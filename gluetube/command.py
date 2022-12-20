@@ -44,8 +44,8 @@ def gluetube_initdb() -> None:
         gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
         gt_cfg.write()
         try:
-            with Store(db_path=store_path, read_only=False) as db:
-                db.create_table('common')
+            db = Store(token.decode(), db_path=store_path, read_only=False)
+            db.create_table('common')
         except exception.dbError:
             raise
 
@@ -220,7 +220,7 @@ def store_ls() -> PrettyTable:
     table.field_names = ['keys']
 
     try:
-        db = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
+        db = Store(gt_cfg.sqlite_token, db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
     except exception.dbError:
         raise
 

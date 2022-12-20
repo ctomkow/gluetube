@@ -87,7 +87,7 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 
         try:
-            db_s = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
+            db_s = Store(gt_cfg.sqlite_token, db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
         except exception.dbError as e:
             raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 

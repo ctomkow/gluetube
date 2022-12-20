@@ -6,7 +6,7 @@ from gluetube.gluetubed import GluetubeDaemon
 from gluetube.db import Pipeline, Store
 from exception import DaemonError
 import gluetube.config
-import gluetube.util
+from gluetube import util
 from gluetube.runner import Runner
 
 # python imports
@@ -55,7 +55,7 @@ class TestGluetubeDaemon:
     @pytest.fixture
     def db_s(self) -> Store:
 
-        db = Store(in_memory=True)
+        db = Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
         db.create_table('common')
         db.insert_key_value('common', 'TEST', 'SECRET')
         return db
@@ -200,7 +200,7 @@ class TestGluetubeDaemon:
     def test_set_key_value(self, kwargs) -> None:
 
         GluetubeDaemon().set_key_value('MY_KEY', 'secret', **kwargs)
-        assert kwargs['db_s'].all_key_values('common')[1][0] == 'MY_KEY' and kwargs['db_s'].all_key_values('common')[1][1] == 'secret'
+        assert kwargs['db_s'].all_key_values('common')[1][0] == 'MY_KEY' and util.decrypt(kwargs['db_s'].all_key_values('common')[1][1], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == 'secret'
 
     def test_delete_key(self, kwargs) -> None:
 
