@@ -38,7 +38,7 @@ There are two ways to deploy gluetube.
 
 ## pipeline development
 
-You are meant to develop your own pipelines in python for gluetube. The following is a brief description of how to get your development environment setup.
+You are meant to develop your own pipelines in python for gluetube. The following is a brief description of how to get your development environment setup. These instructions assume you use **VS code** and **docker**.
 
 1. `docker pull ctomkow/gluetube`
 
@@ -48,7 +48,14 @@ You are meant to develop your own pipelines in python for gluetube. The followin
 
 4. `docker run -itd --name gluetube --net=host -v gluetube-db:/home/gluetube/.gluetube/db -v gluetube-cfg:/home/gluetube/.gluetube/etc ctomkow/gluetube:latest`
 
-5. Use VS code. Attach VS code to running container. Clone your pipeline repository inside your VS code instance attached to the container. Update ~/.gluetube/etc/gluetube.cfg and point config to your pipeline directory
+5. Open VS code. In the docker-> containers section, right click on the running gluetube container and `attach visual studio code` to running container. 
+
+6. Within the container terminal, enter the pipelines directory. `cd pipelines`
+
+7. Clone a repository into /pipelines. Note the `.` at the end of the git clone. This is important because we don't want the project folder as a sub directory.
+ * `git clone <url> .`
+ 
+8. Now you can develop your pipelines (.py files) while having a live gluetube daemon running within the container. All the gluetube cli commands are available to test out your pipeline code in a production-like environment. `gt --help`
 
 ## roadmap
 
