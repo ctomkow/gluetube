@@ -1,110 +1,55 @@
 # gluetube
-todo
-
-## roadmap
-
-### 0.1.0 roadmap
- - [x] run pipeline in isolated env
- - [x] autodiscover pipelines
- - [x] tracking status and stages of pipeline
- - [x] shared variables across pipelines
- - [x] pipeline scheduler
- - [x] cron scheduling
- - [x] at scheduling (run once at date time)
- - [x] gluetube daemon
- - [x] sqlite database schema
- - [x] dockerfile
- - [ ] hello world tutorial
- - [x] encrypted values in store.db
- - [x] 50%+ test coverage
- - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
- - [x] pip install (directory mgmt, upgrades, etc)
- - [x] github actions
- - [x] proxy support to ensure pip can pull pipeline dependencies
- 
-### 0.2.0 roadmap
- - [ ] remote shell connector (for executing cli apps on systems. e.g. ansible, rancid, etc)
- - [ ] re-run pipeline if crashed. specify max retries
- - [ ] git pull repo of pipelines into pipeline_dir
- - [ ] option to define (name, schedule) in pipeline (incl. run pipeline on change to get new potential name, schedule etc.)
- - [ ] a 'gluetube pipeline --clean' and 'gluetube pipeline --cleanall' to remove .venv's that are made
- - [ ] pipeline accessible database to store system object relationships related to pipeline
- - [ ] ability to view pipeline runs via cli
- - [ ] cgroup restrictions for pipelines
-
-### 0.3.0 roadmap
- - [ ] frontend web ui
- - [ ] REST api endpoint to trigger running pipeline, including passing optional parameters as json payload that is accessable by pipeline (PUSH)
- - [ ] pipeline developement mode (ability to see the stdout of the pipeline to track it's run)
- - [ ] ability to 'attach' to running pipeline and see stdout (e.g. gluetube logs -f pipeline_name)
- 
-### 0.4.0 roadmap
- - [ ] dynamic webhook url that pipeline can access/monitor (long-lived LISTENER pipelines)
- - [ ] gracefully handle SIG[TERM|KILL] and ensure it waits for any running pipelines to stop or manually stop them
- - [ ] .rpm
- - [ ] .deb
-
- ### 0.5.0 roadmap
- - [ ] cli v2
- - [ ] ability to run pipelines serially that are linked together (e.g. pipeline reuse)
+A python script scheduler with a shared local database. Meant to enable easy automation and integration of infrastructure and systems. Like cron, but with more bells and whistles.
 
 ## installation
-> adduser gluetube
 
-> pip install --user gluetube
+There are two ways to deploy gluetube. 
 
-> gluetube --configure
+* docker
+* virtual machine / bare metal
 
-> gluetube --initdb
+### docker
 
-> gluetube daemon --background
+1. `docker volume create gluetube-cfg`
 
-> gluetube daemon --stop
+2. `docker volume create gluetube-db`
 
-OR
-> docker volume create gluetube
+3. `docker run -d --init -v gluetube-cfg:/home/gluetube/.gluetube/etc -v gluetube-db:/home/gluetube/.gluetube/db ctomkow/gluetube`
 
-> docker run -d --init -v gluetube:/home/gluetube/.gluetube ctomkow/gluetube
+### VM
 
-todo: systemd unit file (when rpm/deb is built, it will include a unit file since the packages are run as root)
+1. `adduser gluetube`
 
-## usage
+2. `pip install --user gluetube`
 
-> gluetube --help
+3. `gt --configure`
 
-> gluetube summary
+4. `gt --initdb`
 
-> gluetube schedule 1 --now
+5. `gt daemon --background`
+
+## example usage
+
+> `gt --help`
+
+> `gt summary`
+
+> `gt schedule 1 --now`
 
 ## pipeline development
 
-docker pull ctomkow/gluetube
+You are meant to develop your own pipelines in python for gluetube. The following is a brief description of how to get your development environment setup.
 
-docker volume create gluetube-db
+1. `docker pull ctomkow/gluetube`
 
-docker volume create gluetube-cfg
+2. `docker volume create gluetube-db`
 
-docker run -itd --name gluetube --net=host -v gluetube-db:/home/gluetube/.gluetube/db -v gluetube-cfg:/home/gluetube/.gluetube/etc ctomkow/gluetube:latest
+3. `docker volume create gluetube-cfg`
 
-Use VS code. Attach VS code to running container. Clone your pipeline repository inside your VS code instance attached to the container. Update ~/.gluetube/etc/gluetube.cfg and point config to pipeline directory
+4. `docker run -itd --name gluetube --net=host -v gluetube-db:/home/gluetube/.gluetube/db -v gluetube-cfg:/home/gluetube/.gluetube/etc ctomkow/gluetube:latest`
 
+5. Use VS code. Attach VS code to running container. Clone your pipeline repository inside your VS code instance attached to the container. Update ~/.gluetube/etc/gluetube.cfg and point config to your pipeline directory
 
-## gluetube dev env
+## roadmap
 
-docker build -t gluetube-dev:0.1.0 -f dockerfile.dev .
-
-docker volume create gluetube-db
-
-docker volume create gluetube-cfg
-
-docker run -itd --name gluetube-dev --net=host -v ~/code/gluetube/gluetube:/home/gluetube/.local/lib/python3.10/site-packages/gluetube -v ~/code/test_pipelines:/home/gluetube/.gluetube/pipelines -v gluetube-db:/home/gluetube/.gluetube/db gluetube-dev:0.1.0
-
-docker exec -it gluetube-dev bash
-
-## design
-
-Interfaces (cli, gui) interact with the gluetubed socket. The daemon is responsible for making changes to both the scheduler and the database. Treat the database only as a user facing state view.
-
-If a pipeline is in the database, then it should be scheduled. It can be paused and not running, but still registered in the scheduler. Then, if a pipeline is removed, it is deleted from the database and deleted from the scheduler.
-
-Remember, don't touch the db directly. All write should be through an RPC call, otherwise there will be db/scheduler mis-matches which whould require a daemon reload to resolve.
+[gluetube roadmap](https://github.com/ctomkow/gluetube/wiki/Roadmap)
