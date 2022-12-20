@@ -15,7 +15,7 @@ todo
  - [x] sqlite database schema
  - [x] dockerfile
  - [ ] hello world tutorial
- - [ ] encrypted key value database
+ - [x] encrypted values in store.db
  - [x] 50%+ test coverage
  - [x] cli v1 (daemon control, modify scheduling, view pipelines and runs)
  - [x] pip install (directory mgmt, upgrades, etc)
@@ -30,6 +30,7 @@ todo
  - [ ] a 'gluetube pipeline --clean' and 'gluetube pipeline --cleanall' to remove .venv's that are made
  - [ ] pipeline accessible database to store system object relationships related to pipeline
  - [ ] ability to view pipeline runs via cli
+ - [ ] cgroup restrictions for pipelines
 
 ### 0.3.0 roadmap
  - [ ] frontend web ui

@@ -67,12 +67,9 @@ def test_all_variables_in_template_no_variable() -> None:
 
 def test_variable_value_pairs_for_template() -> None:
 
-    db = Store(in_memory=True)
+    db = Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
     db.create_table('common')
-    query = "INSERT OR REPLACE INTO common VALUES (?, ?)"
-    params = ('USERNAME', 'alice')
-    db._conn.cursor().execute(query, params)
-    db._conn.commit()
+    db.insert_key_value('common', 'USERNAME', 'alice')
 
     pairs = runner._variable_value_pairs_for_template(('USERNAME',), db)
 
@@ -82,7 +79,7 @@ def test_variable_value_pairs_for_template() -> None:
 
 def test_variable_value_pairs_for_template_bad_key() -> None:
 
-    db = Store(in_memory=True)
+    db = Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
     db.create_table('common')
     query = "INSERT OR REPLACE INTO common VALUES (?, ?)"
     params = ('USERNAME', 'alice')

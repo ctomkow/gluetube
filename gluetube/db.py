@@ -3,6 +3,7 @@
 
 # local imports
 import exception
+import util
 
 # python imports
 import sqlite3
@@ -34,6 +35,14 @@ class Database:
 
 
 class Store(Database):
+
+    token = None
+
+    def __init__(self, token: str, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
+
+        self.token = token
+
+        super().__init__(db_path, read_only, in_memory)
 
     def create_table(self, table: str) -> None:
 
@@ -69,7 +78,7 @@ class Store(Database):
         results = self._conn.cursor().execute(query, params)
         data = results.fetchone()
         if data:
-            return data[0]
+            return util.decrypt(data[0], self.token)
         else:
             return data
 
@@ -77,7 +86,7 @@ class Store(Database):
 
         try:
             query = f"INSERT OR REPLACE INTO {table} VALUES (?, ?)"
-            params = (key, value)
+            params = (key, util.encrypt(value, self.token))
             self._conn.cursor().execute(query, params)
             self._conn.commit()
         except sqlite3.IntegrityError as e:

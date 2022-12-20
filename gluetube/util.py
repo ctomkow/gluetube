@@ -12,6 +12,9 @@ import struct
 import socket
 from typing import List
 
+# 3rd party imports
+from cryptography.fernet import Fernet
+
 
 def append_name_to_dir_list(name: str, dirs: list) -> List[str]:
 
@@ -66,3 +69,13 @@ def send_rpc_msg_to_daemon(msg: bytes, socket_file: Path) -> None:
         sock.sendall(msg)
     except ConnectionRefusedError as e:
         raise exception.rpcError(f"RPC call failed. {e}") from e
+
+
+def encrypt(data: str, token: str) -> bytes:
+
+    return Fernet(token).encrypt(data.encode())
+
+
+def decrypt(data: bytes, token: str) -> str:
+
+    return Fernet(token).decrypt(data).decode()

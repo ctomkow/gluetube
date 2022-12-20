@@ -17,8 +17,10 @@ import shutil
 # 3rd party imports
 from prettytable import PrettyTable
 from prettytable import SINGLE_BORDER
+from cryptography.fernet import Fernet
 
 
+# this should be idempotent
 def gluetube_initdb() -> None:
 
     try:
@@ -26,22 +28,31 @@ def gluetube_initdb() -> None:
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
         raise e
 
+    # pipeline.db setup
     try:
         db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
     except exception.dbError:
         raise
-
     db.create_schema()
 
-    try:
-        db = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
-        db.create_table('common')
-    except exception.dbError:
-        raise
+    # store.db setup
+    store_path = Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name)
+
+    # generate key and create db
+    if not store_path.exists():
+        token = Fernet.generate_key()
+        gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
+        gt_cfg.write()
+        try:
+            db = Store(token.decode(), db_path=store_path, read_only=False)
+            db.create_table('common')
+        except exception.dbError:
+            raise
 
     print('database setup complete.')
 
 
+# this should be idempotent
 def gluetube_configure() -> None:
 
     appdir = Path(Path.home() / '.gluetube')
@@ -52,7 +63,9 @@ def gluetube_configure() -> None:
     Path(appdir, 'etc').mkdir(parents=True, exist_ok=True)
     incl_cfg_location = Path(Path(__file__).parent.resolve() / 'cfg' / 'gluetube.cfg')
     depl_cfg_location = Path(appdir / 'etc' / 'gluetube.cfg')
-    shutil.copy(incl_cfg_location, depl_cfg_location)
+    if not depl_cfg_location.exists():
+        shutil.copy(incl_cfg_location, depl_cfg_location)
+
     print('first time setup complete')
 
 
@@ -207,7 +220,7 @@ def store_ls() -> PrettyTable:
     table.field_names = ['keys']
 
     try:
-        db = Store(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
+        db = Store(gt_cfg.sqlite_token, db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
     except exception.dbError:
         raise
 

@@ -3,6 +3,7 @@
 
 # local imports
 from gluetube.db import Store, Pipeline
+from gluetube import util
 from exception import dbError
 
 # 3rd party imports
@@ -14,7 +15,7 @@ class TestStore:
     @pytest.fixture
     def db(self) -> Store:
 
-        return Store(in_memory=True)
+        return Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
 
     def test_create_table(self, db) -> None:
 
@@ -43,14 +44,18 @@ class TestStore:
         query = "SELECT value FROM TABLEA WHERE key='user_bob';"
         results = db._conn.cursor().execute(query)
 
-        assert results.fetchone()[0] == 'pass_asdf'
+        assert util.decrypt(results.fetchone()[0], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == 'pass_asdf'
         db.close()
 
     def test_insert_key_empty_value(self, db) -> None:
 
         db.create_table('TABLEA')
-        with pytest.raises(dbError):
-            db.insert_key_value('TABLEA', 'user_bob', '')
+        db.insert_key_value('TABLEA', 'user_bob', '')
+
+        query = "SELECT value FROM TABLEA WHERE key='user_bob';"
+        results = db._conn.cursor().execute(query)
+
+        assert util.decrypt(results.fetchone()[0], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == ''
         db.close()
 
     def test_insert_key_empty_key(self, db) -> None:
@@ -66,7 +71,7 @@ class TestStore:
         db.insert_key_value('TABLEA', 'user_bob', 'pass_asdf')
         results = db.all_key_values('TABLEA')
 
-        assert results == [('user_bob', 'pass_asdf')]
+        assert results[0][0] == 'user_bob' and util.decrypt(results[0][1], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == 'pass_asdf'
         db.close()
 
     def test_all_key_values_empty_table(self, db) -> None:
