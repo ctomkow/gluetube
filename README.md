@@ -14,7 +14,11 @@ There are two ways to deploy gluetube.
 
 2. `docker volume create gluetube-db`
 
-3. `docker run -d --init -v gluetube-cfg:/home/gluetube/.gluetube/etc -v gluetube-db:/home/gluetube/.gluetube/db ctomkow/gluetube`
+3. `docker run -d --init --name gluetube -v gluetube-cfg:/home/gluetube/.gluetube/etc -v gluetube-db:/home/gluetube/.gluetube/db ctomkow/gluetube`
+
+4. `docker exec -it gluetube bash`
+
+5. `gt --initdb`
 
 ### VM
 
