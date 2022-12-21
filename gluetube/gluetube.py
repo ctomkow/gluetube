@@ -14,6 +14,7 @@ import argparse
 import os
 from pathlib import Path
 from getpass import getpass
+from config import Gluetube
 
 # 3rd party imports
 
@@ -30,13 +31,31 @@ class Gluetube:
         if args.configure:
             command.gluetube_configure()
 
+        # TODO: need a check to verify that `--configure`` was done before `db --init``
+
         gt_cfg = util.conf()
         os.chdir(Path(__file__).parent.resolve())
 
+        if 'sub_cmd_db' in args:  # gluetube db sub-command level
+            try:
+                if args.init:
+                    command.db_init()
+            except exception.dbError as e:
+                if args.debug:
+                    logging.exception(f"Database connection failed. Was it initialized first? {e}")
+                else:
+                    logging.error(f"Database connection failed. Was it initialized first? {e}")
+                raise SystemExit(1)
+
+        # check if databases exist, if not, prompt and exit
+        if not self._databases_exist(gt_cfg):
+            print('Local databases do not exist. Type `gt db --init`')
+            raise SystemExit(0)
+
+        # ### NON-INIT CLI COMMANDS ### #
+
         # gluetube level
-        if args.initdb:
-            command.gluetube_initdb()
-        elif args.dev:
+        if args.dev:
             try:
                 command.gluetube_dev(args.dev, Path(gt_cfg.socket_file))
             except exception.rpcError as e:
@@ -108,6 +127,17 @@ class Gluetube:
                 else:
                     logging.error(f"Is the daemon running? {e}")
                 raise SystemExit(1)
+        elif 'sub_cmd_db' in args:  # gluetube db sub-command level
+            try:
+                if args.rekey:  # TODO: db_rekey needs two database objects still. this implies refactoring db objects in command.py
+                    command.db_rekey(gt_cfg)
+            except exception.dbError as e:
+                if args.debug:
+                    logging.exception(f"Database connection failed. Was it initialized first? {e}")
+                else:
+                    logging.error(f"Database connection failed. Was it initialized first? {e}")
+                raise SystemExit(1)
+
         # gracefully exit
         raise SystemExit(0)
 
@@ -121,7 +151,6 @@ class Gluetube:
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
-        group.add_argument('--initdb', action='store_true', help='First time database setup')
         group.add_argument('--configure', action='store_true', help='First time application setup')
         group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
 
@@ -160,6 +189,12 @@ class Gluetube:
         store_group.add_argument('--delete', action='store_true', help='delete the key from the encrypted database')
         store_group.add_argument('--ls', action='store_true', help='list all keys in the encrypted database')
 
+        db = sub_parser.add_parser('db', description='database operations')
+        db.add_argument('sub_cmd_db', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        db_group = db.add_mutually_exclusive_group()
+        db_group.add_argument('--rekey', action='store_true', help='generate a new key for the database')
+        db_group.add_argument('--init', action='store_true', help='First time database setup')
+
         return parser.parse_args()
 
 # helper functions
@@ -174,6 +209,14 @@ class Gluetube:
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s",
                             datefmt="%Y.%m.%d %H:%M:%S")
 
+    def _databases_exist(self, gt_cfg: Gluetube) -> bool:
+
+        if not Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name).exists():
+            return False
+        elif not Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name).exists():
+            return False
+        else:
+            return True
 
 if __name__ == '__main__':
     Gluetube()

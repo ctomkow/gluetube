@@ -6,6 +6,7 @@ from db import Pipeline, Store
 import util
 from gluetubed import GluetubeDaemon
 import exception
+from config import Gluetube
 
 # python imports
 from pathlib import Path
@@ -18,38 +19,6 @@ import shutil
 from prettytable import PrettyTable
 from prettytable import SINGLE_BORDER
 from cryptography.fernet import Fernet
-
-
-# this should be idempotent
-def gluetube_initdb() -> None:
-
-    try:
-        gt_cfg = util.conf()
-    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
-        raise e
-
-    # pipeline.db setup
-    try:
-        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
-    except exception.dbError:
-        raise
-    db.create_schema()
-
-    # store.db setup
-    store_path = Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name)
-
-    # generate key and create db
-    if not store_path.exists():
-        token = Fernet.generate_key()
-        gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
-        gt_cfg.write()
-        try:
-            db = Store(token.decode(), db_path=store_path, read_only=False)
-            db.create_table('common')
-        except exception.dbError:
-            raise
-
-    print('database setup complete.')
 
 
 # this should be idempotent
@@ -227,3 +196,49 @@ def store_ls() -> PrettyTable:
     details = db.all_keys('common')
     table.add_rows(details)
     return table
+
+
+# this should be idempotent
+def db_init() -> None:
+
+    try:
+        gt_cfg = util.conf()
+    except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
+        raise e
+
+    # pipeline.db setup
+    try:
+        db = Pipeline(db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name), read_only=False)
+    except exception.dbError:
+        raise
+    db.create_schema()
+
+    # store.db setup
+    store_path = Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name)
+
+    # generate key and create db
+    if not store_path.exists():
+        token = Fernet.generate_key()
+        gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
+        gt_cfg.write()
+        try:
+            db = Store(token.decode(), db_path=store_path, read_only=False)
+            db.create_table('common')
+        except exception.dbError:
+            raise
+
+    print('database setup complete.')
+
+
+# this should be idempotent
+def db_rekey(db_oldkey: Store, db_newkey: Store, gt_cfg: Gluetube) -> None:
+
+    keys = db_oldkey.all_keys('common')
+
+    token = Fernet.generate_key()
+    gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
+    gt_cfg.write()
+
+    for key in keys:
+        value = db_oldkey.value('common', key)
+        db_newkey.insert_key_value('common', key, value)
