@@ -313,7 +313,7 @@ class GluetubeDaemon:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
             try:
-                self._schedule_add_job(schedule_id, CronTrigger.from_crontab(cron), kwargs['scheduler'], kwargs['db_p'])
+                self._schedule_add_job(schedule_id, CronTrigger.from_crontab(cron), kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
             except exception.RunnerError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
@@ -335,7 +335,7 @@ class GluetubeDaemon:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
             try:
-                self._schedule_add_job(schedule_id, DateTrigger(at), kwargs['scheduler'], kwargs['db_p'])
+                self._schedule_add_job(schedule_id, DateTrigger(at), kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
             except exception.RunnerError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
@@ -356,7 +356,7 @@ class GluetubeDaemon:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
             try:
-                self._schedule_add_job(schedule_id, None, kwargs['scheduler'], kwargs['db_p'])
+                self._schedule_add_job(schedule_id, None, kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
             except exception.RunnerError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 

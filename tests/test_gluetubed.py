@@ -155,10 +155,22 @@ class TestGluetubeDaemon:
         GluetubeDaemon().set_schedule_cron(1, '* * * * *', **kwargs)
         assert kwargs['scheduler'].get_job('1') and kwargs['db_p'].pipeline_schedule(1, 1)[5] == '* * * * *'
 
+    def test_set_schedule_cron_no_job(self, kwargs) -> None:
+
+        kwargs['db_p'].insert_pipeline_schedule(1)
+        GluetubeDaemon().set_schedule_cron(2, '* * * * *', **kwargs)
+        assert kwargs['scheduler'].get_job('2')
+
     def test_set_schedule_at(self, kwargs) -> None:
 
         GluetubeDaemon().set_schedule_at(1, '2099-01-01 00:00:00', **kwargs)
         assert kwargs['scheduler'].get_job('1') and kwargs['db_p'].pipeline_schedule(1, 1)[6] == '2099-01-01 00:00:00'
+
+    def test_set_schedule_at_no_job(self, kwargs) -> None:
+
+        kwargs['db_p'].insert_pipeline_schedule(1)
+        GluetubeDaemon().set_schedule_at(2, '2099-01-01 00:00:00', **kwargs)
+        assert kwargs['scheduler'].get_job('2')
 
     def test_set_schedule_now(self, kwargs) -> None:
 
@@ -166,6 +178,12 @@ class TestGluetubeDaemon:
         assert kwargs['scheduler'].get_job('1') \
             and kwargs['db_p'].pipeline_schedule(1, 1)[5] == '' \
             and kwargs['db_p'].pipeline_schedule(1, 1)[6] == ''
+
+    def test_set_schedule_now_no_job(self, kwargs) -> None:
+
+        kwargs['db_p'].insert_pipeline_schedule(1)
+        GluetubeDaemon().set_schedule_now(2, **kwargs)
+        assert True
 
     def test_delete_pipeline_schedule(self, kwargs) -> None:
 
