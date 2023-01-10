@@ -30,3 +30,4 @@ gluetube.code-workspace
 !setup.cfg
 .mypy_cache
 *.log
+.idea

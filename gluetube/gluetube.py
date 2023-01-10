@@ -129,8 +129,8 @@ class Gluetube:
                 raise SystemExit(1)
         elif 'sub_cmd_db' in args:  # gluetube db sub-command level
             try:
-                if args.rekey:  # TODO: db_rekey needs two database objects still. this implies refactoring db objects in command.py
-                    command.db_rekey(gt_cfg)
+                if args.rekey:
+                    command.db_rekey(Path(gt_cfg.socket_file))
             except exception.dbError as e:
                 if args.debug:
                     logging.exception(f"Database connection failed. Was it initialized first? {e}")

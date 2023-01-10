@@ -433,6 +433,23 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
+    # ##### administrative stuff
+
+    def rekey_db(self, new_key: str, **kwargs: Dict[str, Any]) -> None:
+
+        keys = kwargs['db_s'].all_keys('common')
+        key_values = {}
+        for key in keys:
+            key_values[key[0]] = kwargs['db_s'].value('common', key[0])
+
+        kwargs['db_s'].token = new_key
+
+        for kv in key_values.items():
+            kwargs['db_s'].insert_key_value('common', kv[0], kv[1])
+
+        kwargs['gt_cfg'].config.set('gluetube', 'SQLITE_TOKEN', new_key)
+        kwargs['gt_cfg'].write()
+
     # ##### rpc helper methods
 
     def _schedule_add_job(self, schedule_id: int, trigger: Union[CronTrigger, DateTrigger, None],

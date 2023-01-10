@@ -231,14 +231,13 @@ def db_init() -> None:
 
 
 # this should be idempotent
-def db_rekey(db_oldkey: Store, db_newkey: Store, gt_cfg: Gluetube) -> None:
+def db_rekey(socket_file: Path) -> None:
 
-    keys = db_oldkey.all_keys('common')
+    key = Fernet.generate_key().decode()
 
-    token = Fernet.generate_key()
-    gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
-    gt_cfg.write()
+    msg = util.craft_rpc_msg('rekey_db', [key])
 
-    for key in keys:
-        value = db_oldkey.value('common', key)
-        db_newkey.insert_key_value('common', key, value)
+    try:
+        util.send_rpc_msg_to_daemon(msg, socket_file)
+    except exception.rpcError:
+        raise
