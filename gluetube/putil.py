@@ -17,7 +17,6 @@ import socket
 
 
 def craft_rpc_msg(func: str, params: list) -> bytes:
-
     msg_dict = {'func': func, 'params': params}
     msg_str = json.dumps(msg_dict)
     msg_bytes = str.encode(msg_str)
@@ -25,7 +24,6 @@ def craft_rpc_msg(func: str, params: list) -> bytes:
 
 
 def send_rpc_msg_to_daemon(msg: bytes, socket_file: Path) -> None:
-
     server_address = socket_file.resolve().as_posix()
     if not socket_file.exists():
         raise exception.rpcError(f"Unix domain socket, {socket_file.resolve().as_posix()}, not found")

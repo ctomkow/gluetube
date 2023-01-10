@@ -15,13 +15,13 @@ from typing import List, Tuple
 
 # TODO: error handling
 class PipelineScanner:
-
     pipeline_dir = None
     db_name = None
     db_dir_path = None
     db = None
 
-    def __init__(self, pipeline_dir_path: Path, socket_file: Path, db_dir: Path = Path('.'), db_name: str = 'gluetube.db') -> list:
+    def __init__(self, pipeline_dir_path: Path, socket_file: Path, db_dir: Path = Path('.'),
+                 db_name: str = 'gluetube.db') -> list:
 
         self.pipeline_dir = pipeline_dir_path
         if not self.pipeline_dir.exists():
@@ -53,7 +53,7 @@ class PipelineScanner:
         # tuple (py_file, directory) representing a pipeline
         db_pipelines_no_timestamp = [x[:2] for x in db_pipelines_with_timestamp]
 
-        # this consists of ompletely new pipelines on the file system
+        # this consists of completely new pipelines on the file system
         missing_fs_pipelines = self._cmp_two_elems(fs_pipelines_no_timestamp, db_pipelines_no_timestamp)
 
         # this consists of pipelines in the db that don't exist on the file system anymore
@@ -65,10 +65,10 @@ class PipelineScanner:
         for pipeline in missing_fs_pipelines:
             msg = util.craft_rpc_msg('set_pipeline',
                                      [
-                                        self._generate_unique_pipeline_name(self.db),
-                                        pipeline[0],
-                                        pipeline[1],
-                                        0.0
+                                         self._generate_unique_pipeline_name(self.db),
+                                         pipeline[0],
+                                         pipeline[1],
+                                         0.0
                                      ])
             util.send_rpc_msg_to_daemon(msg, self.socket_file)
 
@@ -179,8 +179,8 @@ class PipelineScanner:
             'ey',  # egg
         ]
 
-        adj = adjectives[random.randint(0, len(adjectives)-1)]
-        noun = nouns[random.randint(0, len(nouns)-1)]
+        adj = adjectives[random.randint(0, len(adjectives) - 1)]
+        noun = nouns[random.randint(0, len(nouns) - 1)]
 
         return f"{adj}-{noun}"
 

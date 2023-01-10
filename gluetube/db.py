@@ -12,7 +12,6 @@ from typing import Union, List, Tuple
 
 
 class Database:
-
     _conn = None
 
     def __init__(self, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
@@ -35,7 +34,6 @@ class Database:
 
 
 class Store(Database):
-
     token = None
 
     def __init__(self, token: str, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
@@ -344,7 +342,8 @@ class Pipeline(Database):
         self._conn.cursor().execute(query, params)
         self._conn.commit()
 
-    def update_pipeline_run_status_exit_msg_end_time(self, pipeline_run_id: int, status: str, msg: str, end_time: str) -> None:
+    def update_pipeline_run_status_exit_msg_end_time(self, pipeline_run_id: int, status: str, msg: str,
+                                                     end_time: str) -> None:
 
         query = "UPDATE pipeline_run SET status = ?, exit_msg = ?, end_time = ? WHERE id = ?"
         params = (status, msg, end_time, pipeline_run_id)
@@ -386,7 +385,8 @@ class Pipeline(Database):
         """)
         return results.fetchall()
 
-    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[Tuple[int, str, str, str, int, str, str, int, int]]:
+    def pipeline_schedule(self, pipeline_id: int, schedule_id: int) -> List[
+        Tuple[int, str, str, str, int, str, str, int, int]]:
 
         query = """
             SELECT pipeline.id, pipeline.name, pipeline.py_name, pipeline.dir_name,

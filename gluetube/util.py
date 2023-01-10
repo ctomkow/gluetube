@@ -24,7 +24,7 @@ def append_name_to_dir_list(name: str, dirs: list) -> List[str]:
 # all the possible directories for the cfg files,
 #   depending on how things are packaged and deployed
 #   starts with local directory
-#   then a dedicated user etc folder
+#   then a dedicated user etc. folder
 #   then branches out eventually system-wide
 #
 #   if multiple config files are found, the last one read will overwrite the earlier files found

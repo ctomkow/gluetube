@@ -10,7 +10,6 @@ from pathlib import Path
 
 
 class Gluetube:
-
     cfg_path = Path
 
     def __init__(self, conf_locations: list) -> None:

@@ -14,6 +14,8 @@ import argparse
 import os
 from pathlib import Path
 from getpass import getpass
+from config import Gluetube
+
 
 # 3rd party imports
 
@@ -30,13 +32,31 @@ class Gluetube:
         if args.configure:
             command.gluetube_configure()
 
+        # TODO: need a check to verify that `--configure`` was done before `db --init``
+
         gt_cfg = util.conf()
         os.chdir(Path(__file__).parent.resolve())
 
+        if 'sub_cmd_db' in args:  # gluetube db sub-command level
+            try:
+                if args.init:
+                    command.db_init()
+            except exception.dbError as e:
+                if args.debug:
+                    logging.exception(f"Database connection failed. Was it initialized first? {e}")
+                else:
+                    logging.error(f"Database connection failed. Was it initialized first? {e}")
+                raise SystemExit(1)
+
+        # check if databases exist, if not, prompt and exit
+        if not self._databases_exist(gt_cfg):
+            print('Local databases do not exist. Type `gt db --init`')
+            raise SystemExit(0)
+
+        # ### NON-INIT CLI COMMANDS ### #
+
         # gluetube level
-        if args.initdb:
-            command.gluetube_initdb()
-        elif args.dev:
+        if args.dev:
             try:
                 command.gluetube_dev(args.dev, Path(gt_cfg.socket_file))
             except exception.rpcError as e:
@@ -108,6 +128,17 @@ class Gluetube:
                 else:
                     logging.error(f"Is the daemon running? {e}")
                 raise SystemExit(1)
+        elif 'sub_cmd_db' in args:  # gluetube db sub-command level
+            try:
+                if args.rekey:
+                    command.db_rekey(Path(gt_cfg.socket_file))
+            except exception.dbError as e:
+                if args.debug:
+                    logging.exception(f"Database connection failed. Was it initialized first? {e}")
+                else:
+                    logging.error(f"Database connection failed. Was it initialized first? {e}")
+                raise SystemExit(1)
+
         # gracefully exit
         raise SystemExit(0)
 
@@ -121,7 +152,6 @@ class Gluetube:
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-v', '--version', action='version', version=f"%(prog)s {version}")
-        group.add_argument('--initdb', action='store_true', help='First time database setup')
         group.add_argument('--configure', action='store_true', help='First time application setup')
         group.add_argument('--dev', action='store', metavar='TESTMSG', help='Send test msg to daemon')
 
@@ -132,37 +162,49 @@ class Gluetube:
 
         daemon = sub_parser.add_parser('daemon', description='start gluetube as a daemon process')
         daemon.add_argument('sub_cmd_daemon', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
-        daemon.add_argument('-s', '--stop', action='store_true', help='stop the daemon that is running in the background')
+        daemon.add_argument('-s', '--stop', action='store_true',
+                            help='stop the daemon that is running in the background')
         daemon_group = daemon.add_mutually_exclusive_group()
         daemon_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
         daemon_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
 
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
-        pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True,
+                              nargs='?')  # a hidden tag to identify sub cmd
         pipeline.add_argument('NAME', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline_group = pipeline.add_mutually_exclusive_group()
         pipeline_group.add_argument('--schedule', action='store_true', help='create a new blank pipeline schedule')
 
         schedule = sub_parser.add_parser('schedule', description='perform actions and updates to existing schedules')
-        schedule.add_argument('sub_cmd_schedule', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        schedule.add_argument('sub_cmd_schedule', metavar='', default=True,
+                              nargs='?')  # a hidden tag to identify sub cmd
         schedule.add_argument('ID', action='store', type=int, nargs=1, help='id of schedule to modify')
         schedule_group = schedule.add_mutually_exclusive_group()
         schedule_group.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
-        schedule_group.add_argument('--at', action='store', metavar='AT', help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
-        schedule_group.add_argument('--now', action='store_true', help="set the schedule to run immediately, erases existing schedule")
+        schedule_group.add_argument('--at', action='store', metavar='AT',
+                                    help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
+        schedule_group.add_argument('--now', action='store_true',
+                                    help="set the schedule to run immediately, erases existing schedule")
         schedule_group.add_argument('--delete', action='store_true', help="delete the schedule")
 
         store = sub_parser.add_parser('store', description='add and remove key value pairs')
         store.add_argument('sub_cmd_store', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
         store.add_argument('KEY', action='store', type=str, nargs='?', help='name of key to act on')
         store_group = store.add_mutually_exclusive_group()
-        store_group.add_argument('--add', action='store_true', help='add the key to the encrypted database (prompted for value)')
+        store_group.add_argument('--add', action='store_true',
+                                 help='add the key to the encrypted database (prompted for value)')
         store_group.add_argument('--delete', action='store_true', help='delete the key from the encrypted database')
         store_group.add_argument('--ls', action='store_true', help='list all keys in the encrypted database')
 
+        db = sub_parser.add_parser('db', description='database operations')
+        db.add_argument('sub_cmd_db', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        db_group = db.add_mutually_exclusive_group()
+        db_group.add_argument('--rekey', action='store_true', help='generate a new key for the database')
+        db_group.add_argument('--init', action='store_true', help='First time database setup')
+
         return parser.parse_args()
 
-# helper functions
+    # helper functions
 
     def _read_local_file(self, file_name: str) -> str:
 
@@ -173,6 +215,15 @@ class Gluetube:
 
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s",
                             datefmt="%Y.%m.%d %H:%M:%S")
+
+    def _databases_exist(self, gt_cfg: Gluetube) -> bool:
+
+        if not Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_app_name).exists():
+            return False
+        elif not Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name).exists():
+            return False
+        else:
+            return True
 
 
 if __name__ == '__main__':

@@ -125,7 +125,7 @@ class rpcError(Exception):
     def __init__(self, msg) -> None:
         super().__init__(msg)
 
-# auto-discovery execeptions
+# auto-discovery exceptions
 
 
 class AutodiscoveryError(Exception):

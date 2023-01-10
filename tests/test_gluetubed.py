@@ -5,7 +5,7 @@
 from gluetube.gluetubed import GluetubeDaemon
 from gluetube.db import Pipeline, Store
 from exception import DaemonError
-import gluetube.config
+from gluetube.config import Gluetube
 from gluetube import util
 from gluetube.runner import Runner
 
@@ -13,13 +13,14 @@ from gluetube.runner import Runner
 from pathlib import Path
 import os
 import socket
-from typing import Any, Dict
+from typing import Any, Dict, Union
 from datetime import datetime
 
 # 3rd party imports
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 import pytest
+from cryptography.fernet import Fernet
 
 
 class TestGluetubeDaemon:
@@ -61,9 +62,9 @@ class TestGluetubeDaemon:
         return db
 
     @pytest.fixture
-    def gt_cfg(self) -> gluetube.config.Gluetube:
+    def gt_cfg(self) -> Gluetube:
 
-        gt_cfg = gluetube.config.Gluetube(Path(Path(__file__).parent.resolve(), 'cfg', 'gluetube.cfg').resolve().as_posix())
+        gt_cfg = Gluetube(Path(Path(__file__).parent.resolve(), 'cfg', 'gluetube.cfg').resolve().as_posix())
         gt_cfg.parse()
         return gt_cfg
 
@@ -119,7 +120,7 @@ class TestGluetubeDaemon:
         client.sendall('asdfgh'.encode())
 
         conn, _ = sock.accept()
-        rcv_data = GluetubeDaemon()._recvall(conn, 4)
+        rcv_data = GluetubeDaemon()._recv_all(conn, 4)
 
         assert rcv_data.decode() == 'asdf'
 
@@ -224,3 +225,9 @@ class TestGluetubeDaemon:
 
         GluetubeDaemon().delete_key('TEST', **kwargs)
         assert kwargs['db_s'].value('common', 'TEST') is None
+
+    def test_rekey_db(self, kwargs) -> None:
+
+        new_key = Fernet.generate_key().decode()
+        GluetubeDaemon().rekey_db(new_key, **kwargs)
+        assert kwargs['db_s'].all_key_values('common')[0][0] == 'TEST' and util.decrypt(kwargs['db_s'].all_key_values('common')[0][1], new_key) == 'SECRET'
