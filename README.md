@@ -1,5 +1,5 @@
 # gluetube
-A python script scheduler with a shared local database. Meant to enable easy automation and integration of infrastructure and systems. Like cron, but with more bells and whistles.
+A simple python script scheduler with a shared local key-value database. Meant to enable easy automation and integration of infrastructure and systems. Like cron, but with more bells and whistles.
 
 ## installation
 
@@ -11,26 +11,19 @@ There are two ways to deploy gluetube.
 ### docker
 
 1. `docker volume create gluetube-cfg`
-
 2. `docker volume create gluetube-db`
-
 3. `docker run -d --init --name gluetube -v gluetube-cfg:/home/gluetube/.gluetube/etc -v gluetube-db:/home/gluetube/.gluetube/db ctomkow/gluetube`
-
 4. `docker exec -it gluetube bash`
-
-5. `gt --initdb`
+5. `gt db --rekey`
 
 ### VM
 
 1. `adduser gluetube`
-
 2. `pip install --user gluetube`
-
 3. `gt --configure`
-
-4. `gt --initdb`
-
+4. `gt db --init`
 5. `gt daemon --background`
+6. `gt db --rekey`
 
 ## example usage
 
