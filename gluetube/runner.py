@@ -25,7 +25,8 @@ from jinja2 import Template, FileSystemLoader, Environment, meta
 
 class Runner:
 
-    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str, schedule_id: int, gt_cfg: config.Gluetube) -> None:
+    def __init__(self, pipeline_id: int, pipeline_name: str, py_file_name: str, pipeline_dir_name: str,
+                 schedule_id: int, gt_cfg: config.Gluetube) -> None:
 
         self.base_dir = gt_cfg.pipeline_dir
         self.p_id = pipeline_id
@@ -50,7 +51,7 @@ class Runner:
             _symlink_gluetube_to_venv(f"{dir_abs_path}/.venv")
 
         # attempt to install pipeline requirements every time it is run
-        # this is required because the pipeline could have changed along with it's requirements.txt
+        # this is required because the pipeline could have changed along with its requirements.txt
         if _requirements_exists(f"{dir_abs_path}/requirements.txt"):
             _install_pipeline_requirements(dir_abs_path, self.http_proxy, self.https_proxy)
 
@@ -67,14 +68,16 @@ class Runner:
         # get current time and create a new db entry for current run
         start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         logging.info(f"Pipeline: {self.p_name}, started.")
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_pipeline_run', [self.p_id, self.s_id, 'running', start_time]), self.socket_file)
+        util.send_rpc_msg_to_daemon(
+            util.craft_rpc_msg('set_pipeline_run', [self.p_id, self.s_id, 'running', start_time]), self.socket_file)
 
         sleep(1)  # avoid race condition on db lookup, a hack i know TODO: fix
 
         # get pipeline_run_id, also set the current_run of pipeline to the pipeline_run_id
         db = Pipeline(db_path=Path(self.db_dir, self.db_app_name))
         pipeline_run_id = db.pipeline_run_id_by_pipeline_id_and_start_time(self.p_id, start_time)
-        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_schedule_latest_run', [self.s_id, pipeline_run_id]), self.socket_file)
+        util.send_rpc_msg_to_daemon(util.craft_rpc_msg('set_schedule_latest_run', [self.s_id, pipeline_run_id]),
+                                    self.socket_file)
 
         # modified environment variables of pipeline for gluetube system
         gluetube_env_vars = os.environ.copy()
@@ -109,11 +112,11 @@ class Runner:
         )
         logging.info(f"Pipeline: {self.p_name}, finished successfully.")
 
+
 # helper functions
 
 
 def _venv_exists(path: str) -> bool:
-
     path = Path(path)
     return path.is_dir()
 
@@ -124,7 +127,6 @@ def _requirements_exists(path: str) -> bool:
 
 
 def _create_venv(dir: str) -> None:
-
     venv_abs_path = f"{dir}/.venv"
     venv = EnvBuilder(with_pip=True, symlinks=True)
     venv.ensure_directories(venv_abs_path)
@@ -132,7 +134,6 @@ def _create_venv(dir: str) -> None:
 
 
 def _symlink_gluetube_to_venv(venv_dir: str) -> None:
-
     # 3.10
     py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -142,7 +143,6 @@ def _symlink_gluetube_to_venv(venv_dir: str) -> None:
 
 
 def _install_pipeline_requirements(dir: str, http_proxy: str = '', https_proxy: str = '') -> None:
-
     env_vars = os.environ.copy()
     env_vars['HTTP_PROXY'] = http_proxy
     env_vars['HTTPS_PROXY'] = https_proxy
@@ -154,20 +154,17 @@ def _install_pipeline_requirements(dir: str, http_proxy: str = '', https_proxy: 
 
 
 def _load_template_env(directory: Path) -> Environment:
-
     file_loader = FileSystemLoader(directory.resolve().as_posix())
     env = Environment(loader=file_loader)
     return env
 
 
 def _jinja_template(env: Environment, file: str) -> Template:
-
     template = env.get_template(file)
     return template
 
 
 def _all_variables_in_template(env: Environment, directory: Path, file: str) -> Set[str]:
-
     data = Path(directory.resolve(), file).read_text()
     ast = env.parse(data)
     variables = meta.find_undeclared_variables(ast)
@@ -175,7 +172,6 @@ def _all_variables_in_template(env: Environment, directory: Path, file: str) -> 
 
 
 def _variable_value_pairs_for_template(variables: Set[str], db: Store) -> dict:
-
     pairs = {}
     for var in variables:
         value = db.value('common', var)

@@ -6,7 +6,6 @@ from db import Pipeline, Store
 import util
 from gluetubed import GluetubeDaemon
 import exception
-from config import Gluetube
 
 # python imports
 from pathlib import Path
@@ -23,15 +22,14 @@ from cryptography.fernet import Fernet
 
 # this should be idempotent
 def gluetube_configure() -> None:
-
-    appdir = Path(Path.home() / '.gluetube')
-    appdir.mkdir(parents=True, exist_ok=True)
-    Path(appdir, 'pipelines').mkdir(parents=True, exist_ok=True)
-    Path(appdir, 'db').mkdir(parents=True, exist_ok=True)
-    Path(appdir, 'var').mkdir(parents=True, exist_ok=True)
-    Path(appdir, 'etc').mkdir(parents=True, exist_ok=True)
+    app_dir = Path(Path.home() / '.gluetube')
+    app_dir.mkdir(parents=True, exist_ok=True)
+    Path(app_dir, 'pipelines').mkdir(parents=True, exist_ok=True)
+    Path(app_dir, 'db').mkdir(parents=True, exist_ok=True)
+    Path(app_dir, 'var').mkdir(parents=True, exist_ok=True)
+    Path(app_dir, 'etc').mkdir(parents=True, exist_ok=True)
     incl_cfg_location = Path(Path(__file__).parent.resolve() / 'cfg' / 'gluetube.cfg')
-    depl_cfg_location = Path(appdir / 'etc' / 'gluetube.cfg')
+    depl_cfg_location = Path(app_dir / 'etc' / 'gluetube.cfg')
     if not depl_cfg_location.exists():
         shutil.copy(incl_cfg_location, depl_cfg_location)
 
@@ -39,7 +37,6 @@ def gluetube_configure() -> None:
 
 
 def summary() -> PrettyTable:
-
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
@@ -48,7 +45,8 @@ def summary() -> PrettyTable:
     table = PrettyTable()
     table.set_style(SINGLE_BORDER)
     table.field_names = [
-        'pipeline name', 'file name', 'schedule ID', 'cron', 'run at (IS0 8601)', 'paused', 'status', 'stage message', 'end time (ISO 8601)'
+        'pipeline name', 'file name', 'schedule ID', 'cron', 'run at (IS0 8601)', 'paused', 'status', 'stage message',
+        'end time (ISO 8601)'
     ]
 
     try:
@@ -62,7 +60,6 @@ def summary() -> PrettyTable:
 
 
 def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
-
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
@@ -84,7 +81,6 @@ def pipeline_schedule(pipeline_name: str, socket_file: Path) -> None:
 
 
 def gluetube_dev(msg: str, socket_file: Path) -> None:
-
     msg_bytes = str.encode(msg)
     msg = struct.pack('>I', len(msg_bytes)) + msg_bytes
     try:
@@ -94,7 +90,6 @@ def gluetube_dev(msg: str, socket_file: Path) -> None:
 
 
 def daemon_fg(debug: bool) -> None:
-
     try:
         GluetubeDaemon().start(debug, fg=True)
     except exception.DaemonError:
@@ -102,7 +97,6 @@ def daemon_fg(debug: bool) -> None:
 
 
 def daemon_bg(debug: bool) -> None:
-
     try:
         GluetubeDaemon().start(debug)
     except exception.DaemonError:
@@ -110,7 +104,6 @@ def daemon_bg(debug: bool) -> None:
 
 
 def daemon_stop(debug: bool) -> None:
-
     with open('/tmp/gluetube.pid', 'r', encoding="utf-8") as f:
         pid = f.readline()
 
@@ -118,7 +111,6 @@ def daemon_stop(debug: bool) -> None:
 
 
 def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:
-
     msg = util.craft_rpc_msg('set_schedule_cron', [schedule_id, cron])
 
     try:
@@ -128,7 +120,6 @@ def schedule_cron(schedule_id: int, cron: str, socket_file: Path) -> None:
 
 
 def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
-
     msg = util.craft_rpc_msg('set_schedule_at', [schedule_id, at])
 
     try:
@@ -138,7 +129,6 @@ def schedule_at(schedule_id: int, at: str, socket_file: Path) -> None:
 
 
 def schedule_now(schedule_id: int, socket_file: Path) -> None:
-
     msg = util.craft_rpc_msg('set_schedule_now', [schedule_id])
 
     try:
@@ -148,7 +138,6 @@ def schedule_now(schedule_id: int, socket_file: Path) -> None:
 
 
 def schedule_delete(schedule_id: int, socket_file: Path) -> None:
-
     msg = util.craft_rpc_msg('delete_schedule', [schedule_id])
 
     try:
@@ -158,7 +147,6 @@ def schedule_delete(schedule_id: int, socket_file: Path) -> None:
 
 
 def store_add(key: str, value: str, socket_file: Path) -> None:
-
     msg = util.craft_rpc_msg('set_key_value', [key, value])
 
     try:
@@ -168,7 +156,6 @@ def store_add(key: str, value: str, socket_file: Path) -> None:
 
 
 def store_delete(key: str, socket_file: Path) -> None:
-
     msg = util.craft_rpc_msg('delete_key', [key])
 
     try:
@@ -178,7 +165,6 @@ def store_delete(key: str, socket_file: Path) -> None:
 
 
 def store_ls() -> PrettyTable:
-
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
@@ -200,7 +186,6 @@ def store_ls() -> PrettyTable:
 
 # this should be idempotent
 def db_init() -> None:
-
     try:
         gt_cfg = util.conf()
     except (exception.ConfigFileParseError, exception.ConfigFileNotFoundError) as e:
@@ -232,7 +217,6 @@ def db_init() -> None:
 
 # this should be idempotent
 def db_rekey(socket_file: Path) -> None:
-
     key = Fernet.generate_key().decode()
 
     msg = util.craft_rpc_msg('rekey_db', [key])

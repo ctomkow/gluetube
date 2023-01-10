@@ -16,6 +16,7 @@ from pathlib import Path
 from getpass import getpass
 from config import Gluetube
 
+
 # 3rd party imports
 
 
@@ -161,31 +162,37 @@ class Gluetube:
 
         daemon = sub_parser.add_parser('daemon', description='start gluetube as a daemon process')
         daemon.add_argument('sub_cmd_daemon', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
-        daemon.add_argument('-s', '--stop', action='store_true', help='stop the daemon that is running in the background')
+        daemon.add_argument('-s', '--stop', action='store_true',
+                            help='stop the daemon that is running in the background')
         daemon_group = daemon.add_mutually_exclusive_group()
         daemon_group.add_argument('-f', '--foreground', action='store_true', help='run daemon in the foreground')
         daemon_group.add_argument('-b', '--background', action='store_true', help='run daemon in the background')
 
         pipeline = sub_parser.add_parser('pipeline', description='perform actions and updates to pipelines')
-        pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        pipeline.add_argument('sub_cmd_pipeline', metavar='', default=True,
+                              nargs='?')  # a hidden tag to identify sub cmd
         pipeline.add_argument('NAME', action='store', type=str, nargs=1, help='name of pipeline to act on')
         pipeline_group = pipeline.add_mutually_exclusive_group()
         pipeline_group.add_argument('--schedule', action='store_true', help='create a new blank pipeline schedule')
 
         schedule = sub_parser.add_parser('schedule', description='perform actions and updates to existing schedules')
-        schedule.add_argument('sub_cmd_schedule', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
+        schedule.add_argument('sub_cmd_schedule', metavar='', default=True,
+                              nargs='?')  # a hidden tag to identify sub cmd
         schedule.add_argument('ID', action='store', type=int, nargs=1, help='id of schedule to modify')
         schedule_group = schedule.add_mutually_exclusive_group()
         schedule_group.add_argument('--cron', action='store', metavar='CRON', help="set cron schedule e.g. '* * * * *'")
-        schedule_group.add_argument('--at', action='store', metavar='AT', help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
-        schedule_group.add_argument('--now', action='store_true', help="set the schedule to run immediately, erases existing schedule")
+        schedule_group.add_argument('--at', action='store', metavar='AT',
+                                    help="run on a date/time (ISO 8601) e.g. '2022-10-01 00:00:00'")
+        schedule_group.add_argument('--now', action='store_true',
+                                    help="set the schedule to run immediately, erases existing schedule")
         schedule_group.add_argument('--delete', action='store_true', help="delete the schedule")
 
         store = sub_parser.add_parser('store', description='add and remove key value pairs')
         store.add_argument('sub_cmd_store', metavar='', default=True, nargs='?')  # a hidden tag to identify sub cmd
         store.add_argument('KEY', action='store', type=str, nargs='?', help='name of key to act on')
         store_group = store.add_mutually_exclusive_group()
-        store_group.add_argument('--add', action='store_true', help='add the key to the encrypted database (prompted for value)')
+        store_group.add_argument('--add', action='store_true',
+                                 help='add the key to the encrypted database (prompted for value)')
         store_group.add_argument('--delete', action='store_true', help='delete the key from the encrypted database')
         store_group.add_argument('--ls', action='store_true', help='list all keys in the encrypted database')
 
@@ -197,7 +204,7 @@ class Gluetube:
 
         return parser.parse_args()
 
-# helper functions
+    # helper functions
 
     def _read_local_file(self, file_name: str) -> str:
 
@@ -217,6 +224,7 @@ class Gluetube:
             return False
         else:
             return True
+
 
 if __name__ == '__main__':
     Gluetube()

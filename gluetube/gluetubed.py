@@ -9,7 +9,7 @@ from runner import Runner
 import util
 import exception
 from autodiscovery import PipelineScanner
-import config
+from config import Gluetube
 
 # python imports
 import socket
@@ -20,7 +20,7 @@ from json.decoder import JSONDecodeError
 import os
 from datetime import datetime
 import sys
-from typing import Union, Any, Dict
+from typing import Union
 
 # 3rd party imports
 import daemon
@@ -50,7 +50,7 @@ class GluetubeDaemon:
                     stdout=sys.stdout,
                     stderr=sys.stdout,
                     stdin=sys.stdin
-                    ):
+            ):
                 self._setup(debug)
 
         try:
@@ -64,10 +64,10 @@ class GluetubeDaemon:
                 stdout=log_file,
                 stderr=log_file,
                 detach_process=True
-                ):
+        ):
             self._setup(debug)
 
-    # must setup everything after the daemon context, otherwise the daemon closes all file descriptors on me
+    # must set up everything after the daemon context, otherwise the daemon closes all file descriptors on me
     def _setup(self, debug: bool) -> None:
 
         if debug:
@@ -108,7 +108,8 @@ class GluetubeDaemon:
 
     # ###################################### DAEMON LOOP #######################################
 
-    def _main(self, scheduler: BackgroundScheduler, db_p: Pipeline, db_s: Store, sock: socket.socket, debug: bool, gt_cfg: config.Gluetube) -> None:
+    def _main(self, scheduler: BackgroundScheduler, db_p: Pipeline, db_s: Store, sock: socket.socket, debug: bool,
+              gt_cfg: Gluetube) -> None:
 
         # keyword arguments for all RPC method calls
         kwargs = {'scheduler': scheduler, 'db_p': db_p, 'db_s': db_s, 'gt_cfg': gt_cfg}
@@ -120,14 +121,14 @@ class GluetubeDaemon:
             conn, _ = sock.accept()
 
             # process message, get 4 byte length header
-            raw_msg_len = self._recvall(conn, 4)
+            raw_msg_len = self._recv_all(conn, 4)
             if not raw_msg_len:
                 logging.error("RPC call 4 byte length header missing")
                 continue
 
             # get the full message and decode into a string
             msg_len = struct.unpack('>I', raw_msg_len)[0]
-            msg = self._recvall(conn, msg_len).decode()
+            msg = self._recv_all(conn, msg_len).decode()
 
             # extract RPC details from json message
             try:
@@ -162,11 +163,13 @@ class GluetubeDaemon:
 
     # #################################### END DAEMON LOOP #########################################
 
-    def _write_pid(self, pid_file: Path) -> None:
+    @staticmethod
+    def _write_pid(pid_file: Path) -> None:
 
         pid_file.write_text(str(os.getpid()), encoding="utf-8")
 
-    def _setup_listener_unix_socket(self, socket_file: Path) -> socket.socket:
+    @staticmethod
+    def _setup_listener_unix_socket(socket_file: Path) -> socket.socket:
 
         # unix socket for IPC. for interfaces (cli, gui) to interact with daemon
         server_address = socket_file.resolve().as_posix()
@@ -177,13 +180,14 @@ class GluetubeDaemon:
         sock.listen()
         return sock
 
-    def _setup_scheduler(self, max_threads: int) -> BackgroundScheduler:
+    @staticmethod
+    def _setup_scheduler(max_threads: int) -> BackgroundScheduler:
 
         try:
             scheduler = BackgroundScheduler(
                 {
                     'apscheduler.executors.default':
-                    {'class': 'apscheduler.executors.pool:ThreadPoolExecutor', 'max_workers': f'{max_threads}'}
+                        {'class': 'apscheduler.executors.pool:ThreadPoolExecutor', 'max_workers': f'{max_threads}'}
                 }
             )
         except ValueError as e:
@@ -191,7 +195,8 @@ class GluetubeDaemon:
         return scheduler
 
     # Helper function to recv number of bytes or return None if EOF is hit
-    def _recvall(self, sock: socket.socket, num_bytes: int) -> bytearray:
+    @staticmethod
+    def _recv_all(sock: socket.socket, num_bytes: int) -> Union[bytearray, None]:
 
         data = bytearray()
         while len(data) < num_bytes:
@@ -201,7 +206,8 @@ class GluetubeDaemon:
             data.extend(packet)
         return data
 
-    def _schedule_pipelines(self, scheduler: BackgroundScheduler, db: Pipeline, gt_cfg: config.Gluetube) -> None:
+    @staticmethod
+    def _schedule_pipelines(scheduler: BackgroundScheduler, db: Pipeline, gt_cfg: Gluetube) -> None:
 
         pipelines = db.all_pipelines_scheduling()
         for pipeline in pipelines:
@@ -232,12 +238,14 @@ class GluetubeDaemon:
             if pipeline[7]:  # if paused
                 scheduler.get_job(str(pipeline[4])).pause()
 
-    def _schedule_auto_discovery(self, scheduler: BackgroundScheduler, gt_cfg: config.Gluetube) -> None:
+    @staticmethod
+    def _schedule_auto_discovery(scheduler: BackgroundScheduler, gt_cfg: Gluetube) -> None:
 
         interval = IntervalTrigger(seconds=int(gt_cfg.pipeline_scan_interval))
 
         try:
-            pipeline_scanner = PipelineScanner(Path(gt_cfg.pipeline_dir), Path(gt_cfg.socket_file), db_dir=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name)
+            pipeline_scanner = PipelineScanner(Path(gt_cfg.pipeline_dir), Path(gt_cfg.socket_file),
+                                               db_dir=Path(gt_cfg.sqlite_dir), db_name=gt_cfg.sqlite_app_name)
         except exception.AutodiscoveryError as e:
             raise exception.DaemonError(f"Failed to initialize pipeline scanner. {e}") from e
 
@@ -252,7 +260,8 @@ class GluetubeDaemon:
     # ##### scheduler and database modifications together
 
     # auto-discovery calls this whenever a new pipeline.py AND pipeline_directory unique tuple is found
-    def set_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str, **kwargs: Dict[str, Any]) -> None:
+    def set_pipeline(self, name: str, py_name: str, dir_name: str, py_timestamp: str,
+                     **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             pipeline_id = kwargs['db_p'].insert_pipeline(name, py_name, dir_name, py_timestamp)
@@ -268,14 +277,17 @@ class GluetubeDaemon:
 
         try:
             # job runs if no trigger is specified. So, I set a dummy date trigger for now to avoid job run
-            self._schedule_add_job(pipeline_schedule_id, DateTrigger(datetime(2999, 1, 1)), kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
+            self._schedule_add_job(pipeline_schedule_id, DateTrigger(datetime(2999, 1, 1)), kwargs['scheduler'],
+                                   kwargs['db_p'], kwargs['gt_cfg'])
         except (ConflictingIdError, exception.RunnerError) as e:
             # rollback database insert
             kwargs['db_p'].delete_pipeline(pipeline_id)
             raise exception.DaemonError(f"Failed to add pipeline schedule. {e}") from e
 
     # auto-discovery calls this whenever a pipeline.py AND pipeline_directory unique tuple disappears
-    def delete_pipeline(self, pipeline_id: int, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def delete_pipeline(pipeline_id: int,
+                        **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         schedules_id = kwargs['db_p'].pipeline_schedules_id(pipeline_id)
 
@@ -292,7 +304,8 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to delete pipeline from database. {e}") from e
 
-    def set_schedule(self, pipeline_id: int, **kwargs: Dict[str, Any]) -> None:
+    def set_schedule(self, pipeline_id: int,
+                     **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             schedule_id = kwargs['db_p'].insert_pipeline_schedule(pipeline_id)
@@ -300,11 +313,13 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
         try:
-            self._schedule_add_job(schedule_id, DateTrigger(datetime(2999, 1, 1)), kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
+            self._schedule_add_job(schedule_id, DateTrigger(datetime(2999, 1, 1)), kwargs['scheduler'], kwargs['db_p'],
+                                   kwargs['gt_cfg'])
         except exception.RunnerError as e:
             raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
-    def set_schedule_cron(self, schedule_id: int, cron: str, **kwargs: Dict[str, Any]) -> None:
+    def set_schedule_cron(self, schedule_id: int, cron: str,
+                          **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         if kwargs['scheduler'].get_job(str(schedule_id)):
             try:
@@ -313,7 +328,8 @@ class GluetubeDaemon:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
             try:
-                self._schedule_add_job(schedule_id, CronTrigger.from_crontab(cron), kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
+                self._schedule_add_job(schedule_id, CronTrigger.from_crontab(cron), kwargs['scheduler'], kwargs['db_p'],
+                                       kwargs['gt_cfg'])
             except exception.RunnerError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
@@ -325,9 +341,10 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_schedule_at(self, schedule_id: int, at: str, **kwargs: Dict[str, Any]) -> None:
+    def set_schedule_at(self, schedule_id: int, at: str,
+                        **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
-        # need to check if the job exists or not. Once a run-once job has been run, it's autoremoved from scheduler
+        # need to check if the job exists or not. Once a run-once job has been run, it's auto-removed from scheduler
         if kwargs['scheduler'].get_job(str(schedule_id)):
             try:
                 kwargs['scheduler'].reschedule_job(str(schedule_id), trigger=DateTrigger(at))
@@ -335,7 +352,8 @@ class GluetubeDaemon:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
         else:
             try:
-                self._schedule_add_job(schedule_id, DateTrigger(at), kwargs['scheduler'], kwargs['db_p'], kwargs['gt_cfg'])
+                self._schedule_add_job(schedule_id, DateTrigger(at), kwargs['scheduler'], kwargs['db_p'],
+                                       kwargs['gt_cfg'])
             except exception.RunnerError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
@@ -347,7 +365,8 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_schedule_now(self, schedule_id: int, **kwargs: Dict[str, Any]) -> None:
+    def set_schedule_now(self, schedule_id: int,
+                         **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         if kwargs['scheduler'].get_job(str(schedule_id)):
             try:
@@ -360,7 +379,7 @@ class GluetubeDaemon:
             except exception.RunnerError as e:
                 raise exception.DaemonError(f"Failed to modify pipeline schedule. {e}") from e
 
-    # remove cron and at if exists
+        # remove cron and at if exists
         try:
             if kwargs['db_p'].pipeline_schedule_cron(schedule_id):
                 kwargs['db_p'].update_pipeline_schedule_cron(schedule_id, '')
@@ -369,7 +388,9 @@ class GluetubeDaemon:
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def delete_schedule(self, schedule_id: int, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def delete_schedule(schedule_id: int,
+                        **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         if kwargs['scheduler'].get_job(str(schedule_id)):
             kwargs['scheduler'].remove_job(str(schedule_id))
@@ -381,14 +402,18 @@ class GluetubeDaemon:
 
     # ##### database writes
 
-    def set_schedule_latest_run(self, schedule_id: int, pipeline_run_id: int, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def set_schedule_latest_run(schedule_id: int, pipeline_run_id: int,
+                                **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_schedule_latest_run(schedule_id, pipeline_run_id)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_pipeline_run(self, pipeline_id: int, schedule_id: int, status: str, start_time: str, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def set_pipeline_run(pipeline_id: int, schedule_id: int, status: str, start_time: str,
+                         **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_p'].insert_pipeline_run(pipeline_id, schedule_id, status, start_time)
@@ -396,7 +421,9 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # pipeline.py calls this to update the status it's in
-    def set_pipeline_run_status(self, pipeline_run_id: int, status: str, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def set_pipeline_run_status(pipeline_run_id: int, status: str,
+                                **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_run_status(pipeline_run_id, status)
@@ -404,7 +431,9 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # pipeline.py calls this to update the stage it's in
-    def set_pipeline_run_stage_and_stage_msg(self, pipeline_run_id: int, stage: int, msg: str, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def set_pipeline_run_stage_and_stage_msg(pipeline_run_id: int, stage: int, msg: str,
+                                             **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_run_stage_and_stage_msg(pipeline_run_id, stage, msg)
@@ -412,21 +441,27 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
     # runner.py calls this to update the pipeline run when it's done
-    def set_pipeline_run_finished(self, pipeline_run_id: int, status: str, msg: str, end_time: str, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def set_pipeline_run_finished(pipeline_run_id: int, status: str, msg: str, end_time: str,
+                                  **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_p'].update_pipeline_run_status_exit_msg_end_time(pipeline_run_id, status, msg, end_time)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def set_key_value(self, key: str, value: str, table: str = 'common', **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def set_key_value(key: str, value: str, table: str = 'common',
+                      **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_s'].insert_key_value(table, key, value)
         except sqlite3.Error as e:
             raise exception.DaemonError(f"Failed to update database. {e}") from e
 
-    def delete_key(self, key: str, table: str = 'common', **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def delete_key(key: str, table: str = 'common',
+                   **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         try:
             kwargs['db_s'].delete_key(table, key)
@@ -435,7 +470,8 @@ class GluetubeDaemon:
 
     # ##### administrative stuff
 
-    def rekey_db(self, new_key: str, **kwargs: Dict[str, Any]) -> None:
+    @staticmethod
+    def rekey_db(new_key: str, **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         keys = kwargs['db_s'].all_keys('common')
         key_values = {}
@@ -452,8 +488,10 @@ class GluetubeDaemon:
 
     # ##### rpc helper methods
 
-    def _schedule_add_job(self, schedule_id: int, trigger: Union[CronTrigger, DateTrigger, None],
-                          scheduler: BackgroundScheduler = None, db_p: Pipeline = None, gt_cfg: config.Gluetube = None) -> None:
+    @staticmethod
+    def _schedule_add_job(schedule_id: int, trigger: Union[CronTrigger, DateTrigger, None],
+                          scheduler: BackgroundScheduler = None, db_p: Pipeline = None,
+                          gt_cfg: Gluetube = None) -> None:
 
         pipeline = db_p.pipeline_from_schedule_id(schedule_id)
 
@@ -464,5 +502,5 @@ class GluetubeDaemon:
 
         try:
             scheduler.add_job(runner.run, trigger=trigger, id=str(schedule_id))
-        except ConflictingIdError as e:
+        except ConflictingIdError:
             raise

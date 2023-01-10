@@ -6,7 +6,7 @@
 from gluetube.autodiscovery import PipelineScanner
 from gluetube.db import Pipeline
 # for some reason, from gluetube.exception import AutodiscoveryError doesn't work, but this does
-#   and if works ONLY if the import is after the PipelineScanner import (where sys.path if modified in __init__.py)
+#   , and it works ONLY if the import is after the PipelineScanner import (where sys.path if modified in __init__.py)
 from exception import AutodiscoveryError
 
 # 3rd part imports
