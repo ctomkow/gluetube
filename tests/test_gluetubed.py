@@ -230,7 +230,7 @@ class TestGluetubeDaemon:
 
     def test_rekey_db(self, kwargs) -> None:
 
-        new_password = os.urandom(32)
+        new_password = base64.urlsafe_b64encode(os.urandom(32)).decode()
         GluetubeDaemon().rekey_db(new_password, **kwargs)
         key_value_salt = kwargs['db_s'].all_key_values('common')
-        assert key_value_salt[0][0] == 'TEST' and util.decrypt(key_value_salt[0][1], base64.urlsafe_b64encode(new_password), key_value_salt[0][2]) == 'SECRET'
+        assert key_value_salt[0][0] == 'TEST' and util.decrypt(key_value_salt[0][1], new_password.encode(), key_value_salt[0][2]) == 'SECRET'

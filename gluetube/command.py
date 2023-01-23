@@ -18,7 +18,6 @@ import base64
 # 3rd party imports
 from prettytable import PrettyTable
 from prettytable import SINGLE_BORDER
-from cryptography.fernet import Fernet
 
 
 # this should be idempotent
@@ -218,7 +217,7 @@ def db_init() -> None:
 
 # this should be idempotent
 def db_rekey(socket_file: Path) -> None:
-    sys_password = os.urandom(32)
+    sys_password = base64.urlsafe_b64encode(os.urandom(32)).decode()
 
     msg = util.craft_rpc_msg('rekey_db', [sys_password])
 

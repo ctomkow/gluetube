@@ -472,7 +472,7 @@ class GluetubeDaemon:
     # ##### administrative stuff
 
     @staticmethod
-    def rekey_db(new_password: bytes, **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
+    def rekey_db(new_password: str, **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
         key_value_salt = kwargs['db_s'].all_key_values('common')
 
@@ -482,7 +482,7 @@ class GluetubeDaemon:
             data = util.decrypt(kvs[1], kwargs['db_s'].sys_password, kvs[2])
             key_data[kvs[0]] = data
 
-        new_password = base64.urlsafe_b64encode(new_password)
+        new_password = new_password.encode()
         kwargs['db_s'].sys_password = new_password
 
         # update values
