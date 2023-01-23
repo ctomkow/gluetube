@@ -15,6 +15,7 @@ There are two ways to deploy gluetube.
 3. `docker run -d --init --name gluetube -v gluetube-cfg:/home/gluetube/.gluetube/etc -v gluetube-db:/home/gluetube/.gluetube/db ctomkow/gluetube`
 4. `docker exec -it gluetube bash`
 5. `gt db --rekey`
+6. `docker restart gluetube`
 
 ### VM
 
@@ -24,6 +25,8 @@ There are two ways to deploy gluetube.
 4. `gt db --init`
 5. `gt daemon --background`
 6. `gt db --rekey`
+7. `gt daemon --stop`
+8. `gt daemon --background`
 
 ## example usage
 
