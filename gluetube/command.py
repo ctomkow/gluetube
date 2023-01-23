@@ -13,6 +13,7 @@ import struct
 import os
 import signal
 import shutil
+import base64
 
 # 3rd party imports
 from prettytable import PrettyTable
@@ -175,7 +176,7 @@ def store_ls() -> PrettyTable:
     table.field_names = ['keys']
 
     try:
-        db = Store(gt_cfg.sqlite_token, db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
+        db = Store(gt_cfg.sqlite_password, db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name))
     except exception.dbError:
         raise
 
@@ -203,11 +204,11 @@ def db_init() -> None:
 
     # generate key and create db
     if not store_path.exists():
-        token = Fernet.generate_key()
-        gt_cfg.config.set('gluetube', 'SQLITE_TOKEN', token.decode())
+        sys_password = os.urandom(32)
+        gt_cfg.config.set('gluetube', 'SQLITE_PASSWORD', base64.urlsafe_b64encode(sys_password).decode())
         gt_cfg.write()
         try:
-            db = Store(token.decode(), db_path=store_path, read_only=False)
+            db = Store(sys_password, db_path=store_path, read_only=False)
             db.create_table('common')
         except exception.dbError:
             raise
@@ -217,9 +218,9 @@ def db_init() -> None:
 
 # this should be idempotent
 def db_rekey(socket_file: Path) -> None:
-    key = Fernet.generate_key().decode()
+    sys_password = os.urandom(32)
 
-    msg = util.craft_rpc_msg('rekey_db', [key])
+    msg = util.craft_rpc_msg('rekey_db', [sys_password])
 
     try:
         util.send_rpc_msg_to_daemon(msg, socket_file)

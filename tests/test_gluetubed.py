@@ -15,6 +15,7 @@ import os
 import socket
 from typing import Any, Dict, Union
 from datetime import datetime
+import base64
 
 # 3rd party imports
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -56,7 +57,7 @@ class TestGluetubeDaemon:
     @pytest.fixture
     def db_s(self) -> Store:
 
-        db = Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
+        db = Store(base64.urlsafe_b64encode('system_password'.encode()), in_memory=True)
         db.create_table('common')
         db.insert_key_value('common', 'TEST', 'SECRET')
         return db
@@ -219,7 +220,8 @@ class TestGluetubeDaemon:
     def test_set_key_value(self, kwargs) -> None:
 
         GluetubeDaemon().set_key_value('MY_KEY', 'secret', **kwargs)
-        assert kwargs['db_s'].all_key_values('common')[1][0] == 'MY_KEY' and util.decrypt(kwargs['db_s'].all_key_values('common')[1][1], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == 'secret'
+        results = kwargs['db_s'].all_key_values('common')
+        assert kwargs['db_s'].all_key_values('common')[1][0] == 'MY_KEY' and util.decrypt(results[1][1], base64.urlsafe_b64encode('system_password'.encode()), results[1][2]) == 'secret'
 
     def test_delete_key(self, kwargs) -> None:
 
@@ -228,6 +230,7 @@ class TestGluetubeDaemon:
 
     def test_rekey_db(self, kwargs) -> None:
 
-        new_key = Fernet.generate_key().decode()
-        GluetubeDaemon().rekey_db(new_key, **kwargs)
-        assert kwargs['db_s'].all_key_values('common')[0][0] == 'TEST' and util.decrypt(kwargs['db_s'].all_key_values('common')[0][1], new_key) == 'SECRET'
+        new_password = os.urandom(32)
+        GluetubeDaemon().rekey_db(new_password, **kwargs)
+        key_value_salt = kwargs['db_s'].all_key_values('common')
+        assert key_value_salt[0][0] == 'TEST' and util.decrypt(key_value_salt[0][1], base64.urlsafe_b64encode(new_password), key_value_salt[0][2]) == 'SECRET'

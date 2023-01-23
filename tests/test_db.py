@@ -6,6 +6,9 @@ from gluetube.db import Store, Pipeline
 from gluetube import util
 from exception import dbError
 
+# python imports
+import base64
+
 # 3rd party imports
 import pytest
 
@@ -15,15 +18,15 @@ class TestStore:
     @pytest.fixture
     def db(self) -> Store:
 
-        return Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
+        return Store(base64.urlsafe_b64encode('system_password'.encode()), in_memory=True)
 
     def test_create_table(self, db) -> None:
 
         db.create_table('TABLEA')
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name='TABLEA';"
-        results = db._conn.cursor().execute(query)
+        results = db._conn.cursor().execute(query).fetchone()
 
-        assert results.fetchone()[0] == 'TABLEA'
+        assert results[0] == 'TABLEA'
         db.close()
 
     def test_create_table_existing_table(self, db) -> None:
@@ -31,9 +34,9 @@ class TestStore:
         db.create_table('TABLEA')
         db.create_table('TABLEA')
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name='TABLEA';"
-        results = db._conn.cursor().execute(query)
+        results = db._conn.cursor().execute(query).fetchone()
 
-        assert results.fetchone()[0] == 'TABLEA'
+        assert results[0] == 'TABLEA'
         db.close()
 
     def test_insert_key_value(self, db) -> None:
@@ -41,10 +44,10 @@ class TestStore:
         db.create_table('TABLEA')
         db.insert_key_value('TABLEA', 'user_bob', 'pass_asdf')
 
-        query = "SELECT value FROM TABLEA WHERE key='user_bob';"
-        results = db._conn.cursor().execute(query)
+        query = "SELECT value, salt FROM TABLEA WHERE key='user_bob';"
+        results = db._conn.cursor().execute(query).fetchone()
 
-        assert util.decrypt(results.fetchone()[0], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == 'pass_asdf'
+        assert util.decrypt(results[0], base64.urlsafe_b64encode('system_password'.encode()), results[1]) == 'pass_asdf'
         db.close()
 
     def test_insert_key_empty_value(self, db) -> None:
@@ -52,10 +55,10 @@ class TestStore:
         db.create_table('TABLEA')
         db.insert_key_value('TABLEA', 'user_bob', '')
 
-        query = "SELECT value FROM TABLEA WHERE key='user_bob';"
-        results = db._conn.cursor().execute(query)
+        query = "SELECT value, salt FROM TABLEA WHERE key='user_bob';"
+        results = db._conn.cursor().execute(query).fetchone()
 
-        assert util.decrypt(results.fetchone()[0], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == ''
+        assert util.decrypt(results[0], base64.urlsafe_b64encode('system_password'.encode()), results[1]) == ''
         db.close()
 
     def test_insert_key_empty_key(self, db) -> None:
@@ -71,7 +74,7 @@ class TestStore:
         db.insert_key_value('TABLEA', 'user_bob', 'pass_asdf')
         results = db.all_key_values('TABLEA')
 
-        assert results[0][0] == 'user_bob' and util.decrypt(results[0][1], 'PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=') == 'pass_asdf'
+        assert results[0][0] == 'user_bob' and util.decrypt(results[0][1], base64.urlsafe_b64encode('system_password'.encode()), results[0][2]) == 'pass_asdf'
         db.close()
 
     def test_all_key_values_empty_table(self, db) -> None:

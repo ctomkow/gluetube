@@ -10,10 +10,14 @@ from pathlib import Path
 import json
 import struct
 import socket
-from typing import List
+from typing import List, Tuple
+import os
+import base64
 
 # 3rd party imports
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 def append_name_to_dir_list(name: str, dirs: list) -> List[str]:
@@ -71,11 +75,28 @@ def send_rpc_msg_to_daemon(msg: bytes, socket_file: Path) -> None:
         raise exception.rpcError(f"RPC call failed. {e}") from e
 
 
-def encrypt(data: str, token: str) -> bytes:
+def encrypt(data: str, sys_password: base64.urlsafe_b64encode) -> Tuple[str, str]:
 
-    return Fernet(token).encrypt(data.encode())
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=500000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(sys_password))
+    return base64.urlsafe_b64encode(Fernet(key).encrypt(data.encode())).decode(), base64.urlsafe_b64encode(salt).decode()
 
 
-def decrypt(data: bytes, token: str) -> str:
+def decrypt(data: str, sys_password: base64.urlsafe_b64encode, salt: str) -> str:
 
-    return Fernet(token).decrypt(data).decode()
+    salt = base64.urlsafe_b64decode(salt.encode())
+    data = base64.urlsafe_b64decode(data.encode())
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=500000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(sys_password))
+    return Fernet(key).decrypt(data).decode()

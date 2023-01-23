@@ -37,7 +37,7 @@ class Runner:
         self.db_dir = gt_cfg.sqlite_dir
         self.db_app_name = gt_cfg.sqlite_app_name
         self.db_kv_name = gt_cfg.sqlite_kv_name
-        self.db_kv_token = gt_cfg.sqlite_token
+        self.db_kv_token = gt_cfg.sqlite_password
         self.socket_file = Path(gt_cfg.socket_file)
         self.http_proxy = gt_cfg.http_proxy
         self.https_proxy = gt_cfg.https_proxy
