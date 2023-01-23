@@ -7,6 +7,7 @@ from gluetube.db import Store
 
 # python imports
 from pathlib import Path
+import base64
 
 # 3rd party imports
 from jinja2 import Environment, FileSystemLoader, Template, exceptions
@@ -67,7 +68,7 @@ def test_all_variables_in_template_no_variable() -> None:
 
 def test_variable_value_pairs_for_template() -> None:
 
-    db = Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
+    db = Store(base64.urlsafe_b64encode('system_password'.encode()), in_memory=True)
     db.create_table('common')
     db.insert_key_value('common', 'USERNAME', 'alice')
 
@@ -79,12 +80,9 @@ def test_variable_value_pairs_for_template() -> None:
 
 def test_variable_value_pairs_for_template_bad_key() -> None:
 
-    db = Store('PjhSLgp2FbZqbdMzwLEPK-VRaIBiiN_WwEwnAnqhA_o=', in_memory=True)
+    db = Store(base64.urlsafe_b64encode('system_password'.encode()), in_memory=True)
     db.create_table('common')
-    query = "INSERT OR REPLACE INTO common VALUES (?, ?)"
-    params = ('USERNAME', 'alice')
-    db._conn.cursor().execute(query, params)
-    db._conn.commit()
+    db.insert_key_value('common', 'USERNAME', 'alice')
 
     pairs = runner._variable_value_pairs_for_template(('BAD_KEY',), db)
 

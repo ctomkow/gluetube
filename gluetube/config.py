@@ -34,7 +34,7 @@ class Gluetube:
             self.sqlite_dir = self.config['gluetube']['SQLITE_DIR']
             self.sqlite_app_name = self.config['gluetube']['SQLITE_APP_NAME']
             self.sqlite_kv_name = self.config['gluetube']['SQLITE_KV_NAME']
-            self.sqlite_token = self.config['gluetube']['SQLITE_TOKEN']
+            self.sqlite_password = self.config['gluetube']['SQLITE_PASSWORD']
             self.socket_file = self.config['gluetube']['SOCKET_FILE']
             self.pid_file = self.config['gluetube']['PID_FILE']
             self.gluetube_log_file = self.config['gluetube']['GLUETUBE_LOG_FILE']

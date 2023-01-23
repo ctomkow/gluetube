@@ -1,5 +1,6 @@
 # Craig Tomkow
 # 2022-09-13
+import os
 
 # local imports
 from gluetube import util
@@ -36,3 +37,12 @@ def test_craft_rpc_msg() -> None:
     result = util.craft_rpc_msg('myfunc', ['a', 'b'])
 
     assert result == test_payload
+
+
+def test_encrypt_decrypt() -> None:
+
+    password = os.urandom(32)
+    encrypted_data, salt = util.encrypt('test_string', password)
+    raw_data = util.decrypt(encrypted_data, password, salt)
+
+    assert raw_data == 'test_string'

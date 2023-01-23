@@ -9,6 +9,7 @@ import util
 import sqlite3
 from pathlib import Path
 from typing import Union, List, Tuple
+import base64
 
 
 class Database:
@@ -34,11 +35,11 @@ class Database:
 
 
 class Store(Database):
-    token = None
+    sys_password = None
 
-    def __init__(self, token: str, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
+    def __init__(self, sys_password: base64.urlsafe_b64encode, db_path: Path = Path('.'), read_only: bool = True, in_memory: bool = False) -> None:
 
-        self.token = token
+        self.sys_password = sys_password
 
         super().__init__(db_path, read_only, in_memory)
 
@@ -47,7 +48,8 @@ class Store(Database):
         self._conn.cursor().execute(f"""
             CREATE TABLE IF NOT EXISTS {table}(
                 key TEXT UNIQUE NOT NULL CHECK (key != ''),
-                value TEXT NOT NULL CHECK (value != '')
+                value TEXT NOT NULL CHECK (value != ''),
+                salt TEXT NOT NULL CHECK (salt != '')
             )""")
         self._conn.commit()
 
@@ -71,20 +73,21 @@ class Store(Database):
 
     def value(self, table: str, key: str) -> str:
 
-        query = f"SELECT value FROM {table} WHERE key = ?"
+        query = f"SELECT value, salt FROM {table} WHERE key = ?"
         params = (key,)
         results = self._conn.cursor().execute(query, params)
         data = results.fetchone()
         if data:
-            return util.decrypt(data[0], self.token)
+            return util.decrypt(data[0], self.sys_password, data[1])
         else:
             return data
 
     def insert_key_value(self, table: str, key: str, value: str) -> None:
 
         try:
-            query = f"INSERT OR REPLACE INTO {table} VALUES (?, ?)"
-            params = (key, util.encrypt(value, self.token))
+            query = f"INSERT OR REPLACE INTO {table} VALUES (?, ?, ?)"
+            encrypted_data, salt = util.encrypt(value, self.sys_password)
+            params = (key, encrypted_data, salt)
             self._conn.cursor().execute(query, params)
             self._conn.commit()
         except sqlite3.IntegrityError as e:

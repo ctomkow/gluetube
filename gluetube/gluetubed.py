@@ -21,6 +21,7 @@ import os
 from datetime import datetime
 import sys
 from typing import Union
+import base64
 
 # 3rd party imports
 import daemon
@@ -87,7 +88,7 @@ class GluetubeDaemon:
             raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 
         try:
-            db_s = Store(gt_cfg.sqlite_token, db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
+            db_s = Store(gt_cfg.sqlite_password.encode(), db_path=Path(gt_cfg.sqlite_dir, gt_cfg.sqlite_kv_name), read_only=False)
         except exception.dbError as e:
             raise exception.DaemonError(f"Failed to start daemon. {e}") from e
 
@@ -471,19 +472,24 @@ class GluetubeDaemon:
     # ##### administrative stuff
 
     @staticmethod
-    def rekey_db(new_key: str, **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
+    def rekey_db(new_password: bytes, **kwargs: Union[BackgroundScheduler, Pipeline, Store, Gluetube]) -> None:
 
-        keys = kwargs['db_s'].all_keys('common')
-        key_values = {}
-        for key in keys:
-            key_values[key[0]] = kwargs['db_s'].value('common', key[0])
+        key_value_salt = kwargs['db_s'].all_key_values('common')
 
-        kwargs['db_s'].token = new_key
+        # generate dict of key:unencrypted_data
+        key_data = {}
+        for kvs in key_value_salt:
+            data = util.decrypt(kvs[1], kwargs['db_s'].sys_password, kvs[2])
+            key_data[kvs[0]] = data
 
-        for kv in key_values.items():
-            kwargs['db_s'].insert_key_value('common', kv[0], kv[1])
+        new_password = base64.urlsafe_b64encode(new_password)
+        kwargs['db_s'].sys_password = new_password
 
-        kwargs['gt_cfg'].config.set('gluetube', 'SQLITE_TOKEN', new_key)
+        # update values
+        for key, data in key_data.items():
+            kwargs['db_s'].insert_key_value('common', key, data)
+
+        kwargs['gt_cfg'].config.set('gluetube', 'SQLITE_PASSWORD', new_password.decode())
         kwargs['gt_cfg'].write()
 
     # ##### rpc helper methods
